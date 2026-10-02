@@ -1,784 +1,360 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Voice & Touch Smartboard Note App</title>
-  <style>
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-      user-select: none;
-    }
-
-    body, html {
-      width: 100%;
-      height: 100%;
-      overflow: hidden;
-      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
-      background-color: #121212;
-      color: #ffffff;
-    }
-
-    #app-container {
-      display: flex;
-      flex-direction: column;
-      width: 100vw;
-      height: 100vh;
-      position: relative;
-    }
-
-    /* Top HUD Action Toast */
-    #action-toast {
-      position: absolute;
-      top: 20px;
-      left: 50%;
-      transform: translateX(-50%) translateY(-20px);
-      background: rgba(16, 185, 129, 0.95);
-      color: #ffffff;
-      padding: 10px 24px;
-      border-radius: 30px;
-      font-weight: 700;
-      font-size: 16px;
-      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
-      pointer-events: none;
-      opacity: 0;
-      transition: all 0.15s cubic-bezier(0, 0, 0.2, 1);
-      z-index: 1000;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    #action-toast.show {
-      opacity: 1;
-      transform: translateX(-50%) translateY(0);
-    }
-
-    /* Main Drawing Area */
-    #board-viewport {
-      flex: 1;
-      position: relative;
-      background-color: #0d2b1d; /* Classic Dark Green Blackboard */
-      overflow: hidden;
-      cursor: crosshair;
-      transition: background-color 0.2s ease;
-    }
-
-    #board-viewport.grid-active {
-      background-image: linear-gradient(rgba(255, 255, 255, 0.08) 1px, transparent 1px),
-                        linear-gradient(90deg, rgba(255, 255, 255, 0.08) 1px, transparent 1px);
-      background-size: 40px 40px;
-    }
-
-    #board-canvas {
-      position: absolute;
-      top: 0;
-      left: 0;
-      touch-action: none;
-    }
-
-    /* Floating Toolbar Container */
-    #toolbar-container {
-      position: absolute;
-      bottom: 20px;
-      left: 50%;
-      transform: translateX(-50%);
-      display: flex;
-      align-items: center;
-      gap: 16px;
-      z-index: 100;
-    }
-
-    .toolbar-card {
-      background: rgba(255, 255, 255, 0.92);
-      backdrop-filter: blur(12px);
-      border-radius: 16px;
-      padding: 8px 12px;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35);
-      border: 1px solid rgba(255, 255, 255, 0.4);
-    }
-
-    .tool-btn {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      width: 62px;
-      height: 58px;
-      border: none;
-      background: transparent;
-      border-radius: 12px;
-      color: #334155;
-      cursor: pointer;
-      transition: all 0.15s ease;
-      font-size: 11px;
-      font-weight: 600;
-      gap: 3px;
-    }
-
-    .tool-btn svg {
-      width: 22px;
-      height: 22px;
-      fill: currentColor;
-    }
-
-    .tool-btn:hover {
-      background: rgba(0, 0, 0, 0.05);
-      color: #0f172a;
-    }
-
-    .tool-btn.active {
-      background: #2563eb;
-      color: #ffffff;
-      box-shadow: 0 4px 12px rgba(37, 99, 235, 0.35);
-    }
-
-    .divider {
-      width: 1px;
-      height: 36px;
-      background: #cbd5e1;
-      margin: 0 4px;
-    }
-
-    /* Sub-menu Overlay Popups */
-    .popover-menu {
-      position: absolute;
-      bottom: 90px;
-      background: rgba(255, 255, 255, 0.96);
-      backdrop-filter: blur(16px);
-      border-radius: 16px;
-      padding: 16px;
-      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.3);
-      border: 1px solid rgba(255, 255, 255, 0.5);
-      display: none;
-      flex-direction: column;
-      gap: 12px;
-      color: #1e293b;
-      z-index: 101;
-    }
-
-    .popover-menu.show {
-      display: flex;
-    }
-
-    .popover-title {
-      font-size: 12px;
-      font-weight: 700;
-      color: #64748b;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-    }
-
-    .color-swatches {
-      display: grid;
-      grid-template-columns: repeat(6, 1fr);
-      gap: 8px;
-    }
-
-    .swatch {
-      width: 32px;
-      height: 32px;
-      border-radius: 50%;
-      cursor: pointer;
-      border: 2px solid #ffffff;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.2);
-      transition: transform 0.1s ease;
-    }
-
-    .swatch:hover {
-      transform: scale(1.15);
-    }
-
-    .swatch.selected {
-      outline: 3px solid #2563eb;
-      outline-offset: 2px;
-    }
-
-    .stroke-slider {
-      width: 100%;
-      accent-color: #2563eb;
-    }
-
-    /* Voice Status Floating Badge */
-    #voice-status-pill {
-      position: absolute;
-      top: 20px;
-      right: 20px;
-      background: rgba(15, 23, 42, 0.85);
-      backdrop-filter: blur(8px);
-      padding: 8px 16px;
-      border-radius: 30px;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      font-size: 13px;
-      font-weight: 600;
-      border: 1px solid rgba(255, 255, 255, 0.15);
-      box-shadow: 0 8px 20px rgba(0,0,0,0.3);
-      z-index: 90;
-    }
-
-    .mic-dot {
-      width: 10px;
-      height: 10px;
-      border-radius: 50%;
-      background: #ef4444;
-    }
-
-    .mic-dot.listening {
-      background: #22c55e;
-      box-shadow: 0 0 10px #22c55e;
-      animation: pulse-ring 1.2s infinite;
-    }
-
-    @keyframes pulse-ring {
-      0% { transform: scale(0.95); opacity: 1; }
-      50% { transform: scale(1.25); opacity: 0.6; }
-      100% { transform: scale(0.95); opacity: 1; }
-    }
-  </style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Vidhyaguru SmartBoard — Voice Blackboard</title>
+<style>
+:root{
+  --panel:rgba(18,22,28,.94);
+  --panel2:rgba(30,35,42,.96);
+  --text:#f8fafc;
+  --muted:#94a3b8;
+  --accent:#4f8cff;
+  --danger:#ef4444;
+}
+*{box-sizing:border-box}
+html,body{margin:0;width:100%;height:100%;overflow:hidden;font-family:Inter,Segoe UI,system-ui,sans-serif;background:#000;color:var(--text)}
+button,input{font:inherit}
+button{cursor:pointer}
+#app{width:100vw;height:100vh;position:relative;overflow:hidden}
+#board{position:absolute;inset:0;background:#0d2b1d;touch-action:none;cursor:crosshair}
+#draw{position:absolute;inset:0;width:100%;height:100%;touch-action:none}
+#top{
+ position:absolute;top:14px;left:14px;right:14px;z-index:20;
+ display:flex;align-items:center;justify-content:space-between;pointer-events:none
+}
+.topGroup{display:flex;gap:8px;align-items:center;pointer-events:auto}
+.badge,.topBtn{
+ background:rgba(10,15,20,.82);border:1px solid rgba(255,255,255,.13);
+ color:#fff;border-radius:12px;backdrop-filter:blur(12px)
+}
+.badge{padding:9px 13px;font-weight:700;font-size:13px}
+.topBtn{width:42px;height:42px;font-size:18px}
+#voiceBadge{display:flex;align-items:center;gap:8px}
+#dot{width:9px;height:9px;border-radius:50%;background:#64748b}
+#dot.live{background:#22c55e;box-shadow:0 0 14px #22c55e;animation:pulse 1s infinite}
+@keyframes pulse{50%{transform:scale(1.25);opacity:.65}}
+#bottom{
+ position:absolute;left:50%;bottom:18px;transform:translateX(-50%);z-index:30;
+ display:flex;gap:10px;align-items:center;max-width:96vw
+}
+.panel{
+ background:var(--panel);border:1px solid rgba(255,255,255,.12);
+ box-shadow:0 15px 45px rgba(0,0,0,.38);backdrop-filter:blur(16px);
+ border-radius:17px;padding:7px;display:flex;align-items:center;gap:4px
+}
+.tool{
+ min-width:62px;height:56px;border:0;border-radius:12px;background:transparent;color:#cbd5e1;
+ display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;font-size:10px;font-weight:700
+}
+.tool:hover{background:rgba(255,255,255,.08);color:white}
+.tool.active{background:var(--accent);color:white;box-shadow:0 5px 18px rgba(79,140,255,.3)}
+.icon{font-size:21px;line-height:20px}
+.sep{width:1px;height:38px;background:#334155;margin:0 4px}
+#pages{padding:0 9px;height:56px}
+.pageBtn{border:0;background:transparent;color:#e2e8f0;font-size:21px;width:35px;height:42px;border-radius:9px}
+.pageBtn:hover{background:rgba(255,255,255,.08)}
+#pageText{min-width:58px;text-align:center;font-size:12px;font-weight:800}
+.pop{
+ position:absolute;bottom:91px;z-index:40;display:none;min-width:230px;
+ background:var(--panel2);border:1px solid rgba(255,255,255,.14);
+ border-radius:15px;padding:14px;box-shadow:0 20px 55px rgba(0,0,0,.45)
+}
+.pop.show{display:block}
+.pop h4{margin:0 0 10px;font-size:12px;color:#cbd5e1;text-transform:uppercase;letter-spacing:.08em}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.swatch{width:30px;height:30px;border-radius:50%;border:2px solid rgba(255,255,255,.7);box-shadow:0 2px 8px #0006}
+.swatch.sel{outline:3px solid var(--accent);outline-offset:2px}
+.range{width:100%;accent-color:var(--accent)}
+#toast{
+ position:absolute;top:72px;left:50%;transform:translateX(-50%) translateY(-8px);
+ z-index:100;opacity:0;pointer-events:none;transition:.18s;
+ background:rgba(8,12,17,.92);border:1px solid rgba(255,255,255,.15);
+ padding:10px 16px;border-radius:999px;font-weight:800;font-size:13px
+}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+#help{
+ position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);z-index:15;
+ background:rgba(5,9,12,.9);border:1px solid rgba(255,255,255,.12);
+ border-radius:20px;padding:24px;max-width:620px;width:calc(100% - 32px);
+ box-shadow:0 25px 70px #0009;display:none
+}
+#help.show{display:block}
+#help h2{margin:0 0 8px}
+#help p{color:#cbd5e1}
+.cmds{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-top:14px}
+.cmd{padding:10px 12px;border-radius:10px;background:#111827;color:#e2e8f0;font-size:13px}
+@media(max-width:800px){
+ #bottom{bottom:8px;gap:5px}
+ .tool{min-width:48px;height:50px}
+ .panel{padding:5px}
+ .cmds{grid-template-columns:1fr}
+}
+</style>
 </head>
 <body>
+<div id="app">
+  <div id="board"><canvas id="draw"></canvas></div>
 
-  <div id="app-container">
-    <!-- Action Toast for Immediate Voice Feedback -->
-    <div id="action-toast">
-      <span id="toast-icon">⚡</span>
-      <span id="toast-text">Voice Ready</span>
+  <div id="top">
+    <div class="topGroup">
+      <div class="badge">📐 SmartBoard</div>
+      <button class="topBtn" id="helpBtn" title="Voice commands">?</button>
     </div>
-
-    <!-- Voice Live Status Badge -->
-    <div id="voice-status-pill">
-      <div id="mic-dot" class="mic-dot"></div>
-      <span id="mic-label">Voice Engine Initializing...</span>
-    </div>
-
-    <!-- Canvas Area -->
-    <div id="board-viewport">
-      <canvas id="board-canvas"></canvas>
-    </div>
-
-    <!-- Popover Menus -->
-    <!-- Pen Options -->
-    <div id="pen-popover" class="popover-menu" style="left: calc(50% - 180px);">
-      <span class="popover-title">Pen Thickness & Colors</span>
-      <input type="range" id="pen-size" class="stroke-slider" min="1" max="40" value="4">
-      <div class="color-swatches">
-        <div class="swatch selected" style="background: #ffffff;" data-color="#ffffff"></div>
-        <div class="swatch" style="background: #facc15;" data-color="#facc15"></div>
-        <div class="swatch" style="background: #ef4444;" data-color="#ef4444"></div>
-        <div class="swatch" style="background: #3b82f6;" data-color="#3b82f6"></div>
-        <div class="swatch" style="background: #22c55e;" data-color="#22c55e"></div>
-        <div class="swatch" style="background: #a855f7;" data-color="#a855f7"></div>
-      </div>
-    </div>
-
-    <!-- Eraser Options -->
-    <div id="eraser-popover" class="popover-menu" style="left: calc(50% - 110px);">
-      <span class="popover-title">Eraser Size</span>
-      <input type="range" id="eraser-size" class="stroke-slider" min="10" max="120" value="40">
-    </div>
-
-    <!-- Background Switcher Popover -->
-    <div id="bg-popover" class="popover-menu" style="left: calc(50% - 20px);">
-      <span class="popover-title">Board Theme</span>
-      <div class="color-swatches">
-        <div class="swatch" style="background: #0d2b1d;" data-bg="#0d2b1d" title="Green Blackboard"></div>
-        <div class="swatch" style="background: #000000;" data-bg="#000000" title="Black Screen"></div>
-        <div class="swatch" style="background: #ffffff; border: 1px solid #ccc;" data-bg="#ffffff" title="Whiteboard"></div>
-        <div class="swatch" style="background: #1e293b;" data-bg="#1e293b" title="Dark Blue"></div>
-        <div class="swatch" style="background: #475569;" data-bg="#475569" title="Grey Slate"></div>
-      </div>
-      <button id="toggle-grid-btn" style="margin-top: 6px; padding: 6px; border-radius: 6px; border: 1px solid #ccc; cursor: pointer; background: #fff; font-weight:600;">Toggle Grid Lines</button>
-    </div>
-
-    <!-- Main Floating Toolbar -->
-    <div id="toolbar-container">
-      <div class="toolbar-card">
-        <!-- Move / Selection / Preview -->
-        <button class="tool-btn" id="tool-select" title="Move / Selection Mode (Voice: 'Preview' / 'Move')">
-          <svg viewBox="0 0 24 24"><path d="M13.64 21.97C13.14 22.21 12.54 22 12.31 21.5L10.13 16.76L6.88 19.38C6.46 19.71 5.85 19.56 5.61 19.08C5.5 18.86 5.5 18.6 5.58 18.38L10.22 3.82C10.42 3.19 11.1 2.84 11.73 3.04C12.03 3.13 12.29 3.34 12.44 3.63L20.89 17.58C21.22 18.12 21.05 18.82 20.5 19.15C20.28 19.28 20.02 19.33 19.78 19.28L14.77 18.23L14.77 18.24L13.64 21.97Z"/></svg>
-          Selection
-        </button>
-
-        <!-- Write / Pen -->
-        <button class="tool-btn active" id="tool-pen" title="Pen Tool (Voice: 'Pen')">
-          <svg viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
-          Write
-        </button>
-
-        <!-- Eraser -->
-        <button class="tool-btn" id="tool-eraser" title="Eraser Tool (Voice: 'Eraser')">
-          <svg viewBox="0 0 24 24"><path d="M15.14 3C14.63 3 14.12 3.2 13.73 3.59L2.59 14.73C1.81 15.5 1.81 16.77 2.59 17.55L5.04 20H11.5L20.41 11.09C21.2 10.31 21.2 9.04 20.41 8.26L16.55 4.4C16.16 4.01 15.65 3 15.14 3ZM12.21 18H7.04L4 14.96L13.73 5.23L16.9 8.39L12.21 18Z"/></svg>
-          Eraser
-        </button>
-
-        <!-- Clear Board -->
-        <button class="tool-btn" id="tool-clean" title="Clear Screen (Voice: 'Clear')">
-          <svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
-          Clean
-        </button>
-
-        <!-- Themes / Backgrounds -->
-        <button class="tool-btn" id="tool-bg" title="Backgrounds (Voice: 'White Screen', 'Black Screen')">
-          <svg viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V5h14v14z"/></svg>
-          Theme
-        </button>
-
-        <div class="divider"></div>
-
-        <!-- Undo -->
-        <button class="tool-btn" id="tool-undo" title="Undo (Voice: 'Undo')">
-          <svg viewBox="0 0 24 24"><path d="M12.5 8c-2.65 0-5.05.99-6.9 2.6L2 7v9h9l-3.62-3.62c1.39-1.16 3.16-1.88 5.12-1.88 3.54 0 6.55 2.31 7.6 5.5l2.37-.78C21.08 11.03 17.15 8 12.5 8z"/></svg>
-          Undo
-        </button>
-
-        <!-- Redo -->
-        <button class="tool-btn" id="tool-redo" title="Redo (Voice: 'Redo')">
-          <svg viewBox="0 0 24 24"><path d="M18.4 10.6C16.55 8.99 14.15 8 11.5 8c-4.65 0-8.58 3.03-9.96 7.22l2.37.78C4.95 12.81 7.96 10.5 11.5 10.5c1.96 0 3.73.72 5.12 1.88L13 16h9V7l-3.6 3.6z"/></svg>
-          Redo
-        </button>
-      </div>
-
-      <!-- Pagination Secondary Card -->
-      <div class="toolbar-card">
-        <button class="tool-btn" id="page-prev" style="width: 44px;">
-          <svg viewBox="0 0 24 24"><path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/></svg>
-        </button>
-        <span id="page-indicator" style="font-size: 13px; font-weight:700; padding: 0 4px; color:#1e293b;">1 / 1</span>
-        <button class="tool-btn" id="page-next" style="width: 44px;">
-          <svg viewBox="0 0 24 24"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/></svg>
-        </button>
-        <button class="tool-btn" id="page-add" style="width: 44px;" title="Add Page">
-          <svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
-        </button>
-      </div>
+    <div class="topGroup">
+      <div class="badge" id="voiceBadge"><span id="dot"></span><span id="voiceText">Mic Off</span></div>
+      <button class="topBtn" id="micBtn" title="Voice control">🎙️</button>
+      <button class="topBtn" id="fullBtn" title="Fullscreen">⛶</button>
     </div>
   </div>
 
-  <script>
-    // State Management
-    const state = {
-      tool: 'pen', // 'pen', 'eraser', 'select'
-      penColor: '#ffffff',
-      penSize: 4,
-      eraserSize: 40,
-      bgColor: '#0d2b1d',
-      gridActive: false,
-      currentPage: 0,
-      pages: [[]], // Array of stroke history arrays per page
-      redoStack: [[]],
-      isDrawing: false,
-      lastExecutedCmd: '',
-      lastCmdTime: 0
-    };
+  <div id="toast">Ready</div>
 
-    // DOM Elements
-    const canvas = document.getElementById('board-canvas');
-    const ctx = canvas.getContext('2d');
-    const viewport = document.getElementById('board-viewport');
-    const actionToast = document.getElementById('action-toast');
-    const toastText = document.getElementById('toast-text');
-    const micDot = document.getElementById('mic-dot');
-    const micLabel = document.getElementById('mic-label');
-    const pageIndicator = document.getElementById('page-indicator');
+  <div class="pop" id="penPop">
+    <h4>Pen</h4>
+    <input class="range" id="size" type="range" min="1" max="35" value="5">
+    <div class="row" style="margin-top:12px">
+      <button class="swatch sel" data-color="#ffffff" style="background:#fff"></button>
+      <button class="swatch" data-color="#facc15" style="background:#facc15"></button>
+      <button class="swatch" data-color="#ef4444" style="background:#ef4444"></button>
+      <button class="swatch" data-color="#3b82f6" style="background:#3b82f6"></button>
+      <button class="swatch" data-color="#22c55e" style="background:#22c55e"></button>
+      <button class="swatch" data-color="#a855f7" style="background:#a855f7"></button>
+      <button class="swatch" data-color="#111827" style="background:#111827"></button>
+    </div>
+  </div>
 
-    // Popovers
-    const penPopover = document.getElementById('pen-popover');
-    const eraserPopover = document.getElementById('eraser-popover');
-    const bgPopover = document.getElementById('bg-popover');
+  <div class="pop" id="themePop">
+    <h4>Board</h4>
+    <div class="row">
+      <button class="swatch" data-bg="#0d2b1d" style="background:#0d2b1d"></button>
+      <button class="swatch" data-bg="#000" style="background:#000"></button>
+      <button class="swatch" data-bg="#fff" style="background:#fff;border-color:#94a3b8"></button>
+      <button class="swatch" data-bg="#1e293b" style="background:#1e293b"></button>
+      <button class="swatch" data-bg="#334155" style="background:#334155"></button>
+    </div>
+    <button id="gridBtn" style="margin-top:12px;width:100%;padding:9px;border:0;border-radius:9px">Grid: OFF</button>
+  </div>
 
-    // Resize Engine
-    function resizeCanvas() {
-      const tempCanvas = document.createElement('canvas');
-      tempCanvas.width = canvas.width;
-      tempCanvas.height = canvas.height;
-      const tempCtx = tempCanvas.getContext('2d');
-      if (canvas.width > 0) tempCtx.drawImage(canvas, 0, 0);
+  <div id="help">
+    <h2>🎙️ Voice Blackboard</h2>
+    <p>Turn on the mic and speak simple commands. You can also use the buttons normally.</p>
+    <div class="cmds">
+      <div class="cmd">“Pen” / “Write”</div>
+      <div class="cmd">“Eraser”</div>
+      <div class="cmd">“Blue” / “Red” / “Yellow”</div>
+      <div class="cmd">“Blackboard” / “Whiteboard”</div>
+      <div class="cmd">“Undo” / “Redo”</div>
+      <div class="cmd">“Clear board”</div>
+      <div class="cmd">“New page”</div>
+      <div class="cmd">“Next page” / “Previous page”</div>
+      <div class="cmd">“Grid”</div>
+      <div class="cmd">“Fullscreen”</div>
+    </div>
+  </div>
 
-      canvas.width = viewport.clientWidth;
-      canvas.height = viewport.clientHeight;
+  <div id="bottom">
+    <div class="panel">
+      <button class="tool active" id="pen"><span class="icon">✎</span>Pen</button>
+      <button class="tool" id="eraser"><span class="icon">⌫</span>Eraser</button>
+      <button class="tool" id="select"><span class="icon">➤</span>Pointer</button>
+      <button class="tool" id="clear"><span class="icon">✕</span>Clear</button>
+      <button class="tool" id="theme"><span class="icon">▣</span>Board</button>
+      <div class="sep"></div>
+      <button class="tool" id="undo"><span class="icon">↶</span>Undo</button>
+      <button class="tool" id="redo"><span class="icon">↷</span>Redo</button>
+    </div>
+    <div class="panel" id="pages">
+      <button class="pageBtn" id="prev">‹</button>
+      <span id="pageText">1 / 1</span>
+      <button class="pageBtn" id="next">›</button>
+      <button class="pageBtn" id="add">＋</button>
+    </div>
+  </div>
+</div>
 
-      redrawCurrentPage();
-    }
+<script>
+const canvas=document.getElementById('draw'),ctx=canvas.getContext('2d');
+const board=document.getElementById('board');
+const toast=document.getElementById('toast');
+const dot=document.getElementById('dot'),voiceText=document.getElementById('voiceText');
 
-    window.addEventListener('resize', resizeCanvas);
+const state={
+ tool:'pen',color:'#fff',size:5,bg:'#0d2b1d',grid:false,
+ page:0,pages:[[]],redo:[[]],drawing:false,path:null
+};
 
-    // Fast Visual Feedback Toast
-    function showToast(message, icon = '⚡') {
-      toastText.textContent = message;
-      actionToast.classList.add('show');
-      clearTimeout(window.toastTimer);
-      window.toastTimer = setTimeout(() => {
-        actionToast.classList.remove('show');
-      }, 1200);
-    }
+function resize(){
+ const old=document.createElement('canvas');
+ old.width=canvas.width; old.height=canvas.height;
+ if(canvas.width) old.getContext('2d').drawImage(canvas,0,0);
+ canvas.width=innerWidth; canvas.height=innerHeight;
+ redraw();
+}
+addEventListener('resize',resize);
 
-    // High Performance Drawing Engine
-    let currentPath = null;
+function toastMsg(s){
+ toast.textContent=s;toast.classList.add('show');
+ clearTimeout(window.__t);window.__t=setTimeout(()=>toast.classList.remove('show'),1100);
+}
+function redraw(){
+ ctx.clearRect(0,0,canvas.width,canvas.height);
+ for(const p of state.pages[state.page]){
+   ctx.beginPath();ctx.lineCap='round';ctx.lineJoin='round';
+   ctx.strokeStyle=p.color;ctx.lineWidth=p.size;
+   p.points.forEach((pt,i)=>i?ctx.lineTo(pt.x,pt.y):ctx.moveTo(pt.x,pt.y));
+   ctx.stroke();
+ }
+}
+function pos(e){
+ const r=canvas.getBoundingClientRect();
+ return {x:e.clientX-r.left,y:e.clientY-r.top};
+}
+function start(e){
+ if(state.tool!=='pen' && state.tool!=='eraser') return;
+ e.preventDefault();state.drawing=true;
+ const p=pos(e);
+ state.path={color:state.tool==='eraser'?state.bg:state.color,
+ size:state.tool==='eraser'?Math.max(18,state.size*5):state.size,
+ points:[p]};
+ ctx.beginPath();ctx.moveTo(p.x,p.y);
+}
+function move(e){
+ if(!state.drawing)return;
+ e.preventDefault();const p=pos(e);
+ state.path.points.push(p);ctx.lineTo(p.x,p.y);ctx.strokeStyle=state.path.color;
+ ctx.lineWidth=state.path.size;ctx.lineCap='round';ctx.lineJoin='round';ctx.stroke();
+}
+function end(){
+ if(!state.drawing)return;state.drawing=false;
+ if(state.path?.points.length>1){
+   state.pages[state.page].push(state.path);state.redo[state.page]=[];
+ }
+ state.path=null;
+}
+canvas.addEventListener('pointerdown',start);
+canvas.addEventListener('pointermove',move);
+addEventListener('pointerup',end);
 
-    function getCoordinates(e) {
-      if (e.touches && e.touches.length > 0) {
-        const rect = canvas.getBoundingClientRect();
-        return {
-          x: e.touches[0].clientX - rect.left,
-          y: e.touches[0].clientY - rect.top
-        };
-      }
-      return { x: e.offsetX, y: e.offsetY };
-    }
+function setTool(t){
+ state.tool=t;
+ document.querySelectorAll('.tool').forEach(x=>x.classList.remove('active'));
+ document.getElementById(t)?.classList.add('active');
+ canvas.style.cursor=t==='pen'?'crosshair':t==='eraser'?'cell':'default';
+ closePops();
+ toastMsg(t==='select'?'Pointer mode':t[0].toUpperCase()+t.slice(1));
+}
+function undo(){
+ const a=state.pages[state.page];
+ if(a.length){state.redo[state.page].push(a.pop());redraw();toastMsg('Undo');}
+}
+function redo(){
+ const a=state.redo[state.page];
+ if(a.length){state.pages[state.page].push(a.pop());redraw();toastMsg('Redo');}
+}
+function clearBoard(){
+ state.pages[state.page]=[];state.redo[state.page]=[];redraw();toastMsg('Board cleared');
+}
+function updatePage(){document.getElementById('pageText').textContent=`${state.page+1} / ${state.pages.length}`;redraw()}
+function addPage(){state.pages.push([]);state.redo.push([]);state.page=state.pages.length-1;updatePage();toastMsg('New page')}
+function setBg(c){
+ state.bg=c;board.style.background=c;
+ if(state.grid) applyGrid();
+ redraw();toastMsg('Board changed');
+}
+function applyGrid(){
+ board.style.backgroundImage=state.grid?
+  'linear-gradient(rgba(255,255,255,.12) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.12) 1px,transparent 1px)':'none';
+ board.style.backgroundSize=state.grid?'40px 40px':'auto';
+}
+function toggleGrid(){state.grid=!state.grid;applyGrid();document.getElementById('gridBtn').textContent='Grid: '+(state.grid?'ON':'OFF');toastMsg(state.grid?'Grid on':'Grid off')}
 
-    function startDrawing(e) {
-      if (state.tool === 'select') return;
-      state.isDrawing = true;
-      const coords = getCoordinates(e);
+function closePops(){document.querySelectorAll('.pop').forEach(x=>x.classList.remove('show'))}
+function toggle(id){const x=document.getElementById(id);const open=x.classList.contains('show');closePops();if(!open)x.classList.add('show')}
 
-      currentPath = {
-        tool: state.tool,
-        color: state.tool === 'eraser' ? state.bgColor : state.penColor,
-        size: state.tool === 'eraser' ? state.eraserSize : state.penSize,
-        points: [coords]
-      };
+document.getElementById('pen').onclick=()=>state.tool==='pen'?toggle('penPop'):setTool('pen');
+document.getElementById('eraser').onclick=()=>setTool('eraser');
+document.getElementById('select').onclick=()=>setTool('select');
+document.getElementById('clear').onclick=clearBoard;
+document.getElementById('undo').onclick=undo;
+document.getElementById('redo').onclick=redo;
+document.getElementById('theme').onclick=()=>toggle('themePop');
+document.getElementById('prev').onclick=()=>{if(state.page){state.page--;updatePage()}};
+document.getElementById('next').onclick=()=>{if(state.page<state.pages.length-1){state.page++;updatePage()}};
+document.getElementById('add').onclick=addPage;
+document.getElementById('gridBtn').onclick=toggleGrid;
+document.getElementById('size').oninput=e=>state.size=+e.target.value;
+document.querySelectorAll('[data-color]').forEach(b=>b.onclick=()=>{
+ state.color=b.dataset.color;setTool('pen');
+ document.querySelectorAll('[data-color]').forEach(x=>x.classList.remove('sel'));b.classList.add('sel');
+ toastMsg('Pen '+b.dataset.color);
+});
+document.querySelectorAll('[data-bg]').forEach(b=>b.onclick=()=>setBg(b.dataset.bg));
+document.getElementById('helpBtn').onclick=()=>document.getElementById('help').classList.toggle('show');
+document.getElementById('fullBtn').onclick=()=>document.fullscreenElement?document.exitFullscreen():document.documentElement.requestFullscreen();
 
-      ctx.beginPath();
-      ctx.moveTo(coords.x, coords.y);
-      ctx.lineCap = 'round';
-      ctx.lineJoin = 'round';
-      ctx.strokeStyle = currentPath.color;
-      ctx.lineWidth = currentPath.size;
-    }
+function normalize(s){
+ return s.toLowerCase().replace(/[.,!?]/g,' ').replace(/\s+/g,' ').trim();
+}
+function command(s){
+ s=normalize(s);
+ if(!s)return;
+ if(/\b(new page|add page|next page)\b/.test(s)){addPage();return}
+ if(/\b(previous page|prev page)\b/.test(s)){if(state.page){state.page--;updatePage();toastMsg('Previous page')}return}
+ if(/\b(full screen|fullscreen)\b/.test(s)){document.documentElement.requestFullscreen?.();toastMsg('Fullscreen');return}
+ if(/\b(clear|clean) (the )?(board|screen)\b|\bclear board\b/.test(s)){clearBoard();return}
+ if(/\b(undo)\b/.test(s)){undo();return}
+ if(/\b(redo)\b/.test(s)){redo();return}
+ if(/\b(eraser|erase)\b/.test(s)){setTool('eraser');return}
+ if(/\b(pointer|select|selection|preview|move)\b/.test(s)){setTool('select');return}
+ if(/\b(pen|write|draw)\b/.test(s)){setTool('pen');return}
+ if(/\b(blackboard|black board|black screen)\b/.test(s)){setBg('#000');return}
+ if(/\b(whiteboard|white board|white screen)\b/.test(s)){setBg('#fff');return}
+ if(/\b(greenboard|green board|green screen)\b/.test(s)){setBg('#0d2b1d');return}
+ if(/\b(grid|grid lines)\b/.test(s)){toggleGrid();return}
+ const colors={blue:'#3b82f6',red:'#ef4444',yellow:'#facc15',green:'#22c55e',white:'#fff',purple:'#a855f7',black:'#111827'};
+ for(const [name,c] of Object.entries(colors)){
+   if(new RegExp('\\b'+name+'\\b').test(s)){state.color=c;setTool('pen');toastMsg('Pen '+name);return}
+ }
+ const n=s.match(/\b(?:size|thickness|width)\s+(\d{1,2})\b/);
+ if(n){state.size=Math.min(35,Math.max(1,+n[1]));document.getElementById('size').value=state.size;setTool('pen');toastMsg('Thickness '+state.size);return}
+}
 
-    function draw(e) {
-      if (!state.isDrawing || !currentPath) return;
-      const coords = getCoordinates(e);
-      currentPath.points.push(coords);
+let recognition=null,voiceOn=false;
+const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+if(SR){
+ recognition=new SR();
+ recognition.continuous=true;
+ recognition.interimResults=false;
+ recognition.lang='en-IN';
+ recognition.onstart=()=>{voiceOn=true;dot.classList.add('live');voiceText.textContent='Voice On';toastMsg('Voice control ready')};
+ recognition.onresult=e=>{
+   for(let i=e.resultIndex;i<e.results.length;i++){
+     if(e.results[i].isFinal){
+       const text=e.results[i][0].transcript;
+       toastMsg('Heard: '+text);command(text);
+     }
+   }
+ };
+ recognition.onerror=e=>{
+   if(e.error==='not-allowed'||e.error==='service-not-allowed'){voiceOn=false;dot.classList.remove('live');voiceText.textContent='Mic blocked'}
+ };
+ recognition.onend=()=>{
+   if(voiceOn){try{recognition.start()}catch{}}
+ };
+}else{
+ voiceText.textContent='Voice unsupported';
+}
 
-      ctx.lineTo(coords.x, coords.y);
-      ctx.stroke();
-    }
+function toggleVoice(){
+ if(!recognition){toastMsg('Use Chrome or Edge for voice');return}
+ if(voiceOn){voiceOn=false;try{recognition.stop()}catch{};dot.classList.remove('live');voiceText.textContent='Mic Off';toastMsg('Voice off')}
+ else{try{recognition.start()}catch{}}
+}
+document.getElementById('micBtn').onclick=toggleVoice;
 
-    function stopDrawing() {
-      if (!state.isDrawing) return;
-      state.isDrawing = false;
-      if (currentPath && currentPath.points.length > 0) {
-        state.pages[state.currentPage].push(currentPath);
-        state.redoStack[state.currentPage] = []; // Clear redo on new action
-      }
-      currentPath = null;
-      ctx.beginPath();
-    }
-
-    function redrawCurrentPage() {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      const strokes = state.pages[state.currentPage] || [];
-
-      strokes.forEach(stroke => {
-        if (stroke.points.length < 1) return;
-        ctx.beginPath();
-        ctx.lineCap = 'round';
-        ctx.lineJoin = 'round';
-        ctx.strokeStyle = stroke.tool === 'eraser' ? state.bgColor : stroke.color;
-        ctx.lineWidth = stroke.size;
-
-        ctx.moveTo(stroke.points[0].x, stroke.points[0].y);
-        for (let i = 1; i < stroke.points.length; i++) {
-          ctx.lineTo(stroke.points[i].x, stroke.points[i].y);
-        }
-        ctx.stroke();
-      });
-    }
-
-    // Canvas Events
-    canvas.addEventListener('mousedown', startDrawing);
-    canvas.addEventListener('mousemove', draw);
-    canvas.addEventListener('mouseup', stopDrawing);
-    canvas.addEventListener('mouseleave', stopDrawing);
-
-    canvas.addEventListener('touchstart', (e) => { e.preventDefault(); startDrawing(e); }, { passive: false });
-    canvas.addEventListener('touchmove', (e) => { e.preventDefault(); draw(e); }, { passive: false });
-    canvas.addEventListener('touchend', stopDrawing);
-
-    // Tool Switcher Logic
-    function setActiveTool(tool) {
-      state.tool = tool;
-      document.querySelectorAll('.tool-btn').forEach(btn => btn.classList.remove('active'));
-      closeAllPopovers();
-
-      if (tool === 'pen') {
-        document.getElementById('tool-pen').classList.add('active');
-        canvas.style.cursor = 'crosshair';
-      } else if (tool === 'eraser') {
-        document.getElementById('tool-eraser').classList.add('active');
-        canvas.style.cursor = 'cell';
-      } else if (tool === 'select') {
-        document.getElementById('tool-select').classList.add('active');
-        canvas.style.cursor = 'grab';
-      }
-    }
-
-    function closeAllPopovers() {
-      penPopover.classList.remove('show');
-      eraserPopover.classList.remove('show');
-      bgPopover.classList.remove('show');
-    }
-
-    // UI Buttons Binding
-    document.getElementById('tool-pen').addEventListener('click', (e) => {
-      e.stopPropagation();
-      if (state.tool === 'pen') penPopover.classList.toggle('show');
-      else { setActiveTool('pen'); }
-    });
-
-    document.getElementById('tool-eraser').addEventListener('click', (e) => {
-      e.stopPropagation();
-      if (state.tool === 'eraser') eraserPopover.classList.toggle('show');
-      else { setActiveTool('eraser'); }
-    });
-
-    document.getElementById('tool-bg').addEventListener('click', (e) => {
-      e.stopPropagation();
-      bgPopover.classList.toggle('show');
-    });
-
-    document.getElementById('tool-select').addEventListener('click', () => setActiveTool('select'));
-
-    document.getElementById('tool-clean').addEventListener('click', () => clearBoard());
-    document.getElementById('tool-undo').addEventListener('click', () => undo());
-    document.getElementById('tool-redo').addEventListener('click', () => redo());
-
-    // Color Swatches Selection
-    document.querySelectorAll('#pen-popover .swatch').forEach(swatch => {
-      swatch.addEventListener('click', () => {
-        document.querySelectorAll('#pen-popover .swatch').forEach(s => s.classList.remove('selected'));
-        swatch.classList.add('selected');
-        state.penColor = swatch.dataset.color;
-        showToast(`Pen Color: ${state.penColor}`);
-      });
-    });
-
-    // Background Swatches Selection
-    document.querySelectorAll('#bg-popover .swatch').forEach(swatch => {
-      swatch.addEventListener('click', () => {
-        setBoardBackground(swatch.dataset.bg);
-      });
-    });
-
-    document.getElementById('toggle-grid-btn').addEventListener('click', () => {
-      state.gridActive = !state.gridActive;
-      viewport.classList.toggle('grid-active', state.gridActive);
-      showToast(state.gridActive ? "Grid On" : "Grid Off");
-    });
-
-    function setBoardBackground(colorHex) {
-      state.bgColor = colorHex;
-      viewport.style.backgroundColor = colorHex;
-      redrawCurrentPage();
-      showToast("Background Updated");
-    }
-
-    // Sliders
-    document.getElementById('pen-size').addEventListener('input', (e) => state.penSize = e.target.value);
-    document.getElementById('eraser-size').addEventListener('input', (e) => state.eraserSize = e.target.value);
-
-    // Actions
-    function clearBoard() {
-      state.pages[state.currentPage] = [];
-      state.redoStack[state.currentPage] = [];
-      redrawCurrentPage();
-      showToast("Board Cleared");
-    }
-
-    function undo() {
-      if (state.pages[state.currentPage].length > 0) {
-        const stroke = state.pages[state.currentPage].pop();
-        state.redoStack[state.currentPage].push(stroke);
-        redrawCurrentPage();
-        showToast("Undo");
-      }
-    }
-
-    function redo() {
-      if (state.redoStack[state.currentPage].length > 0) {
-        const stroke = state.redoStack[state.currentPage].pop();
-        state.pages[state.currentPage].push(stroke);
-        redrawCurrentPage();
-        showToast("Redo");
-      }
-    }
-
-    // Page Management
-    function updatePageUI() {
-      pageIndicator.textContent = `${state.currentPage + 1} / ${state.pages.length}`;
-      redrawCurrentPage();
-    }
-
-    document.getElementById('page-add').addEventListener('click', () => {
-      state.pages.push([]);
-      state.redoStack.push([]);
-      state.currentPage = state.pages.length - 1;
-      updatePageUI();
-      showToast(`Page ${state.currentPage + 1} Created`);
-    });
-
-    document.getElementById('page-prev').addEventListener('click', () => {
-      if (state.currentPage > 0) {
-        state.currentPage--;
-        updatePageUI();
-        showToast(`Page ${state.currentPage + 1}`);
-      }
-    });
-
-    document.getElementById('page-next').addEventListener('click', () => {
-      if (state.currentPage < state.pages.length - 1) {
-        state.currentPage++;
-        updatePageUI();
-        showToast(`Page ${state.currentPage + 1}`);
-      }
-    });
-
-    // Close popovers on canvas tap
-    viewport.addEventListener('click', closeAllPopovers);
-
-    /* ==========================================================================
-       ULTRA-FAST INTERIM VOICE COMMAND RECOGNITION ENGINE
-       ========================================================================== */
-
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-
-    if (!SpeechRecognition) {
-      micLabel.textContent = "Voice API Not Supported in Browser";
-    } else {
-      const recognition = new SpeechRecognition();
-      recognition.continuous = true;
-      recognition.interimResults = true; // Key for sub-100ms reaction speed
-      recognition.lang = 'en-US';
-
-      recognition.onstart = () => {
-        micDot.classList.add('listening');
-        micLabel.textContent = "Voice Mode Active";
-      };
-
-      recognition.onerror = (e) => {
-        console.warn('Speech Error:', e.error);
-      };
-
-      recognition.onend = () => {
-        // Auto Restart Recognition for continuous hands-free operation
-        recognition.start();
-      };
-
-      recognition.onresult = (event) => {
-        const now = Date.now();
-        let transcript = '';
-
-        for (let i = event.resultIndex; i < event.results.length; i++) {
-          transcript += event.results[i][0].transcript;
-        }
-
-        const cmd = transcript.toLowerCase().trim();
-
-        // Prevent duplicate execution within 400ms buffer
-        if (state.lastExecutedCmd === cmd && (now - state.lastCmdTime) < 400) {
-          return;
-        }
-
-        executeVoiceCommand(cmd, now);
-      };
-
-      function executeVoiceCommand(cmd, timestamp) {
-        // High-Speed Pattern Matching
-        if (/\b(pen|write|draw)\b/.test(cmd)) {
-          setActiveTool('pen');
-          showToast("Tool: Pen");
-          recordCmd("pen", timestamp);
-        } 
-        else if (/\b(eraser|erase)\b/.test(cmd)) {
-          setActiveTool('eraser');
-          showToast("Tool: Eraser");
-          recordCmd("eraser", timestamp);
-        }
-        else if (/\b(preview|select|selection|move)\b/.test(cmd)) {
-          setActiveTool('select');
-          showToast("Mode: Selection / Move");
-          recordCmd("preview", timestamp);
-        }
-        else if (/\b(clear|clean|reset)\b/.test(cmd)) {
-          clearBoard();
-          recordCmd("clear", timestamp);
-        }
-        else if (/\b(white screen|whiteboard)\b/.test(cmd)) {
-          setBoardBackground("#ffffff");
-          recordCmd("whitescreen", timestamp);
-        }
-        else if (/\b(black screen|blackboard)\b/.test(cmd)) {
-          setBoardBackground("#000000");
-          recordCmd("blackscreen", timestamp);
-        }
-        else if (/\b(green screen|green board)\b/.test(cmd)) {
-          setBoardBackground("#0d2b1d");
-          recordCmd("greenscreen", timestamp);
-        }
-        // Colors
-        else if (/\b(blue)\b/.test(cmd)) {
-          state.penColor = "#3b82f6";
-          setActiveTool('pen');
-          showToast("Color: Blue");
-          recordCmd("blue", timestamp);
-        }
-        else if (/\b(red)\b/.test(cmd)) {
-          state.penColor = "#ef4444";
-          setActiveTool('pen');
-          showToast("Color: Red");
-          recordCmd("red", timestamp);
-        }
-        else if (/\b(yellow)\b/.test(cmd)) {
-          state.penColor = "#facc15";
-          setActiveTool('pen');
-          showToast("Color: Yellow");
-          recordCmd("yellow", timestamp);
-        }
-        else if (/\b(green)\b/.test(cmd)) {
-          state.penColor = "#22c55e";
-          setActiveTool('pen');
-          showToast("Color: Green");
-          recordCmd("green", timestamp);
-        }
-        else if (/\b(white)\b/.test(cmd)) {
-          state.penColor = "#ffffff";
-          setActiveTool('pen');
-          showToast("Color: White");
-          recordCmd("white", timestamp);
-        }
-        else if (/\b(undo)\b/.test(cmd)) {
-          undo();
-          recordCmd("undo", timestamp);
-        }
-        else if (/\b(redo)\b/.test(cmd)) {
-          redo();
-          recordCmd("redo", timestamp);
-        }
-      }
-
-      function recordCmd(name, time) {
-        state.lastExecutedCmd = name;
-        state.lastCmdTime = time;
-      }
-
-      // Start Engine
-      window.addEventListener('load', () => {
-        resizeCanvas();
-        try {
-          recognition.start();
-        } catch(e) {
-          console.log("Mic auto-start allowed on user interaction");
-        }
-      });
-    }
-  </script>
+resize();
+</script>
 </body>
 </html>
