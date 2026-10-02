@@ -3,358 +3,437 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Vidhyaguru SmartBoard — Voice Blackboard</title>
+<title>Voice SmartBoard Pro</title>
 <style>
 :root{
-  --panel:rgba(18,22,28,.94);
-  --panel2:rgba(30,35,42,.96);
-  --text:#f8fafc;
-  --muted:#94a3b8;
-  --accent:#4f8cff;
-  --danger:#ef4444;
+ --bg:#0d2b1d;--ui:#111827;--ui2:#1f2937;--line:#334155;--text:#f8fafc;
+ --muted:#94a3b8;--accent:#3b82f6;--danger:#ef4444
 }
 *{box-sizing:border-box}
-html,body{margin:0;width:100%;height:100%;overflow:hidden;font-family:Inter,Segoe UI,system-ui,sans-serif;background:#000;color:var(--text)}
-button,input{font:inherit}
+html,body{margin:0;width:100%;height:100%;overflow:hidden;font-family:Inter,Segoe UI,system-ui,sans-serif;background:#05070a;color:var(--text)}
+button,input,textarea{font:inherit}
 button{cursor:pointer}
-#app{width:100vw;height:100vh;position:relative;overflow:hidden}
-#board{position:absolute;inset:0;background:#0d2b1d;touch-action:none;cursor:crosshair}
-#draw{position:absolute;inset:0;width:100%;height:100%;touch-action:none}
+#app{position:fixed;inset:0;overflow:hidden;background:var(--bg)}
+#board{position:absolute;inset:0;background:var(--bg);touch-action:none}
+#canvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none}
+#objects{position:absolute;inset:0;pointer-events:none}
+.obj{position:absolute;pointer-events:auto;user-select:none}
+.sticky{
+ width:190px;min-height:150px;padding:14px;background:#fef08a;color:#1f2937;
+ box-shadow:0 12px 28px #0006;border-radius:4px;cursor:move
+}
+.sticky .handle{font-weight:900;margin-bottom:8px}
+.sticky textarea{width:100%;height:105px;resize:none;border:0;outline:0;background:transparent;color:#1f2937}
+.tableObj{
+ background:#fff;color:#111827;border:2px solid #111827;box-shadow:0 10px 25px #0004;
+ border-collapse:collapse;cursor:move
+}
+.tableObj td{border:1px solid #475569;min-width:85px;height:38px;padding:5px 8px;outline:none}
 #top{
- position:absolute;top:14px;left:14px;right:14px;z-index:20;
- display:flex;align-items:center;justify-content:space-between;pointer-events:none
+ position:absolute;left:14px;right:14px;top:12px;z-index:30;
+ display:flex;justify-content:space-between;align-items:center;pointer-events:none
 }
-.topGroup{display:flex;gap:8px;align-items:center;pointer-events:auto}
+.group{display:flex;align-items:center;gap:7px;pointer-events:auto}
 .badge,.topBtn{
- background:rgba(10,15,20,.82);border:1px solid rgba(255,255,255,.13);
- color:#fff;border-radius:12px;backdrop-filter:blur(12px)
+ background:#0b1016dd;color:#fff;border:1px solid #ffffff1f;backdrop-filter:blur(12px);
+ border-radius:12px
 }
-.badge{padding:9px 13px;font-weight:700;font-size:13px}
+.badge{padding:9px 12px;font-weight:800;font-size:13px}
 .topBtn{width:42px;height:42px;font-size:18px}
-#voiceBadge{display:flex;align-items:center;gap:8px}
+#voice{display:flex;align-items:center;gap:7px}
 #dot{width:9px;height:9px;border-radius:50%;background:#64748b}
-#dot.live{background:#22c55e;box-shadow:0 0 14px #22c55e;animation:pulse 1s infinite}
-@keyframes pulse{50%{transform:scale(1.25);opacity:.65}}
-#bottom{
- position:absolute;left:50%;bottom:18px;transform:translateX(-50%);z-index:30;
- display:flex;gap:10px;align-items:center;max-width:96vw
+#dot.live{background:#22c55e;box-shadow:0 0 14px #22c55e}
+#toast{
+ position:absolute;top:70px;left:50%;transform:translate(-50%,-8px);z-index:90;
+ padding:10px 17px;border-radius:999px;background:#090d12ee;border:1px solid #ffffff22;
+ font-size:13px;font-weight:800;opacity:0;pointer-events:none;transition:.18s
+}
+#toast.show{opacity:1;transform:translate(-50%,0)}
+#toolbar{
+ position:absolute;left:50%;bottom:15px;transform:translateX(-50%);z-index:40;
+ display:flex;gap:8px;align-items:center;max-width:97vw
 }
 .panel{
- background:var(--panel);border:1px solid rgba(255,255,255,.12);
- box-shadow:0 15px 45px rgba(0,0,0,.38);backdrop-filter:blur(16px);
- border-radius:17px;padding:7px;display:flex;align-items:center;gap:4px
+ display:flex;align-items:center;gap:3px;padding:6px;border-radius:17px;
+ background:#111827ee;border:1px solid #ffffff18;box-shadow:0 15px 45px #0008;
+ backdrop-filter:blur(16px)
 }
 .tool{
- min-width:62px;height:56px;border:0;border-radius:12px;background:transparent;color:#cbd5e1;
- display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;font-size:10px;font-weight:700
+ min-width:62px;height:57px;border:0;border-radius:12px;background:transparent;color:#cbd5e1;
+ display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
+ font-size:10px;font-weight:800
 }
-.tool:hover{background:rgba(255,255,255,.08);color:white}
-.tool.active{background:var(--accent);color:white;box-shadow:0 5px 18px rgba(79,140,255,.3)}
-.icon{font-size:21px;line-height:20px}
+.tool:hover{background:#ffffff12;color:#fff}
+.tool.active{background:var(--accent);color:#fff;box-shadow:0 5px 18px #3b82f655}
+.icon{font-size:21px;line-height:21px}
 .sep{width:1px;height:38px;background:#334155;margin:0 4px}
-#pages{padding:0 9px;height:56px}
-.pageBtn{border:0;background:transparent;color:#e2e8f0;font-size:21px;width:35px;height:42px;border-radius:9px}
-.pageBtn:hover{background:rgba(255,255,255,.08)}
-#pageText{min-width:58px;text-align:center;font-size:12px;font-weight:800}
+.pageCtl{height:57px;padding:0 8px;display:flex;align-items:center;gap:4px}
+.pageBtn{width:36px;height:42px;border:0;background:transparent;color:#fff;font-size:22px;border-radius:9px}
+.pageBtn:hover{background:#ffffff12}
+#pageNo{min-width:55px;text-align:center;font-size:12px;font-weight:900}
+#pagesPanel{
+ position:absolute;left:14px;top:82px;bottom:94px;width:215px;z-index:35;
+ background:#0b1016f2;border:1px solid #ffffff1c;border-radius:16px;
+ box-shadow:0 18px 50px #0008;backdrop-filter:blur(14px);
+ display:none;overflow:hidden
+}
+#pagesPanel.show{display:flex;flex-direction:column}
+#pagesHead{padding:12px;border-bottom:1px solid #ffffff16;display:flex;justify-content:space-between;align-items:center}
+#pagesList{padding:10px;overflow:auto;display:flex;flex-direction:column;gap:9px}
+.thumb{
+ height:112px;border:2px solid #334155;border-radius:10px;overflow:hidden;background:var(--bg);
+ position:relative;cursor:pointer
+}
+.thumb.active{border-color:#60a5fa}
+.thumb canvas{width:100%;height:100%;display:block}
+.thumb span{position:absolute;right:6px;bottom:5px;background:#000b;padding:2px 6px;border-radius:5px;font-size:10px}
 .pop{
- position:absolute;bottom:91px;z-index:40;display:none;min-width:230px;
- background:var(--panel2);border:1px solid rgba(255,255,255,.14);
- border-radius:15px;padding:14px;box-shadow:0 20px 55px rgba(0,0,0,.45)
+ position:absolute;bottom:86px;z-index:60;display:none;min-width:245px;
+ padding:14px;background:#111827f7;border:1px solid #ffffff20;border-radius:15px;
+ box-shadow:0 20px 55px #0009
 }
 .pop.show{display:block}
-.pop h4{margin:0 0 10px;font-size:12px;color:#cbd5e1;text-transform:uppercase;letter-spacing:.08em}
+.pop h4{margin:0 0 11px;font-size:12px;text-transform:uppercase;color:#cbd5e1;letter-spacing:.08em}
 .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
-.swatch{width:30px;height:30px;border-radius:50%;border:2px solid rgba(255,255,255,.7);box-shadow:0 2px 8px #0006}
-.swatch.sel{outline:3px solid var(--accent);outline-offset:2px}
-.range{width:100%;accent-color:var(--accent)}
-#toast{
- position:absolute;top:72px;left:50%;transform:translateX(-50%) translateY(-8px);
- z-index:100;opacity:0;pointer-events:none;transition:.18s;
- background:rgba(8,12,17,.92);border:1px solid rgba(255,255,255,.15);
- padding:10px 16px;border-radius:999px;font-weight:800;font-size:13px
+.sw{width:30px;height:30px;border-radius:50%;border:2px solid #fff8}
+.range{width:100%;accent-color:#60a5fa}
+#penPop{left:30px}
+#insertPop{left:250px}
+#themePop{right:220px}
+#selectHint{
+ position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);z-index:10;
+ color:#ffffff88;font-weight:800;font-size:15px;pointer-events:none;display:none
 }
-#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 #help{
- position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);z-index:15;
- background:rgba(5,9,12,.9);border:1px solid rgba(255,255,255,.12);
- border-radius:20px;padding:24px;max-width:620px;width:calc(100% - 32px);
- box-shadow:0 25px 70px #0009;display:none
+ position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);z-index:100;
+ width:min(650px,calc(100% - 32px));background:#0b1016f8;border:1px solid #ffffff1c;
+ border-radius:20px;padding:22px;box-shadow:0 25px 80px #000b;display:none
 }
 #help.show{display:block}
-#help h2{margin:0 0 8px}
+#help h2{margin:0 0 7px}
 #help p{color:#cbd5e1}
-.cmds{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-top:14px}
-.cmd{padding:10px 12px;border-radius:10px;background:#111827;color:#e2e8f0;font-size:13px}
-@media(max-width:800px){
- #bottom{bottom:8px;gap:5px}
- .tool{min-width:48px;height:50px}
- .panel{padding:5px}
+.cmds{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+.cmd{background:#111827;padding:10px;border-radius:9px;font-size:12px}
+#preview{
+ position:absolute;inset:0;z-index:70;background:#000;display:none
+}
+#preview.show{display:block}
+#previewCanvas{width:100%;height:100%}
+#previewClose{position:absolute;top:18px;right:18px}
+@media(max-width:850px){
+ #toolbar{bottom:6px}
+ .tool{min-width:47px;height:50px}
+ .badge:first-child{display:none}
+ #pagesPanel{width:175px}
  .cmds{grid-template-columns:1fr}
 }
 </style>
 </head>
 <body>
 <div id="app">
-  <div id="board"><canvas id="draw"></canvas></div>
+ <div id="board"><canvas id="canvas"></canvas><div id="objects"></div></div>
+ <div id="selectHint">Select mode — click an object to move/edit it</div>
 
-  <div id="top">
-    <div class="topGroup">
-      <div class="badge">📐 SmartBoard</div>
-      <button class="topBtn" id="helpBtn" title="Voice commands">?</button>
-    </div>
-    <div class="topGroup">
-      <div class="badge" id="voiceBadge"><span id="dot"></span><span id="voiceText">Mic Off</span></div>
-      <button class="topBtn" id="micBtn" title="Voice control">🎙️</button>
-      <button class="topBtn" id="fullBtn" title="Fullscreen">⛶</button>
-    </div>
+ <div id="top">
+  <div class="group"><div class="badge">📐 Voice SmartBoard PRO</div><button class="topBtn" id="helpBtn">?</button></div>
+  <div class="group">
+   <div class="badge" id="voice"><span id="dot"></span><span id="voiceText">Mic Off</span></div>
+   <button class="topBtn" id="micBtn">🎙️</button>
+   <button class="topBtn" id="fullBtn">⛶</button>
   </div>
+ </div>
 
-  <div id="toast">Ready</div>
+ <div id="toast">Ready</div>
 
-  <div class="pop" id="penPop">
-    <h4>Pen</h4>
-    <input class="range" id="size" type="range" min="1" max="35" value="5">
-    <div class="row" style="margin-top:12px">
-      <button class="swatch sel" data-color="#ffffff" style="background:#fff"></button>
-      <button class="swatch" data-color="#facc15" style="background:#facc15"></button>
-      <button class="swatch" data-color="#ef4444" style="background:#ef4444"></button>
-      <button class="swatch" data-color="#3b82f6" style="background:#3b82f6"></button>
-      <button class="swatch" data-color="#22c55e" style="background:#22c55e"></button>
-      <button class="swatch" data-color="#a855f7" style="background:#a855f7"></button>
-      <button class="swatch" data-color="#111827" style="background:#111827"></button>
-    </div>
+ <div class="pop" id="penPop">
+  <h4>Pen settings</h4>
+  <input class="range" id="penSize" type="range" min="1" max="35" value="5">
+  <div class="row" style="margin-top:12px">
+   <button class="sw" data-color="#ffffff" style="background:#fff"></button>
+   <button class="sw" data-color="#facc15" style="background:#facc15"></button>
+   <button class="sw" data-color="#ef4444" style="background:#ef4444"></button>
+   <button class="sw" data-color="#3b82f6" style="background:#3b82f6"></button>
+   <button class="sw" data-color="#22c55e" style="background:#22c55e"></button>
+   <button class="sw" data-color="#a855f7" style="background:#a855f7"></button>
+   <button class="sw" data-color="#111827" style="background:#111827"></button>
   </div>
+ </div>
 
-  <div class="pop" id="themePop">
-    <h4>Board</h4>
-    <div class="row">
-      <button class="swatch" data-bg="#0d2b1d" style="background:#0d2b1d"></button>
-      <button class="swatch" data-bg="#000" style="background:#000"></button>
-      <button class="swatch" data-bg="#fff" style="background:#fff;border-color:#94a3b8"></button>
-      <button class="swatch" data-bg="#1e293b" style="background:#1e293b"></button>
-      <button class="swatch" data-bg="#334155" style="background:#334155"></button>
-    </div>
-    <button id="gridBtn" style="margin-top:12px;width:100%;padding:9px;border:0;border-radius:9px">Grid: OFF</button>
+ <div class="pop" id="insertPop">
+  <h4>Insert</h4>
+  <div class="row">
+   <button class="tool" id="stickyBtn"><span class="icon">📝</span>Sticky Note</button>
+   <button class="tool" id="tableBtn"><span class="icon">▦</span>Table</button>
   </div>
+ </div>
 
-  <div id="help">
-    <h2>🎙️ Voice Blackboard</h2>
-    <p>Turn on the mic and speak simple commands. You can also use the buttons normally.</p>
-    <div class="cmds">
-      <div class="cmd">“Pen” / “Write”</div>
-      <div class="cmd">“Eraser”</div>
-      <div class="cmd">“Blue” / “Red” / “Yellow”</div>
-      <div class="cmd">“Blackboard” / “Whiteboard”</div>
-      <div class="cmd">“Undo” / “Redo”</div>
-      <div class="cmd">“Clear board”</div>
-      <div class="cmd">“New page”</div>
-      <div class="cmd">“Next page” / “Previous page”</div>
-      <div class="cmd">“Grid”</div>
-      <div class="cmd">“Fullscreen”</div>
-    </div>
+ <div class="pop" id="themePop">
+  <h4>Board background</h4>
+  <div class="row">
+   <button class="sw" data-bg="#0d2b1d" style="background:#0d2b1d"></button>
+   <button class="sw" data-bg="#000000" style="background:#000"></button>
+   <button class="sw" data-bg="#ffffff" style="background:#fff;border-color:#64748b"></button>
+   <button class="sw" data-bg="#1e293b" style="background:#1e293b"></button>
   </div>
+  <button id="gridBtn" style="margin-top:12px;width:100%;padding:9px;border:0;border-radius:9px">Grid: OFF</button>
+ </div>
 
-  <div id="bottom">
-    <div class="panel">
-      <button class="tool active" id="pen"><span class="icon">✎</span>Pen</button>
-      <button class="tool" id="eraser"><span class="icon">⌫</span>Eraser</button>
-      <button class="tool" id="select"><span class="icon">➤</span>Pointer</button>
-      <button class="tool" id="clear"><span class="icon">✕</span>Clear</button>
-      <button class="tool" id="theme"><span class="icon">▣</span>Board</button>
-      <div class="sep"></div>
-      <button class="tool" id="undo"><span class="icon">↶</span>Undo</button>
-      <button class="tool" id="redo"><span class="icon">↷</span>Redo</button>
-    </div>
-    <div class="panel" id="pages">
-      <button class="pageBtn" id="prev">‹</button>
-      <span id="pageText">1 / 1</span>
-      <button class="pageBtn" id="next">›</button>
-      <button class="pageBtn" id="add">＋</button>
-    </div>
+ <div id="pagesPanel">
+  <div id="pagesHead"><b>Pages</b><button class="pageBtn" id="closePages">×</button></div>
+  <div id="pagesList"></div>
+ </div>
+
+ <div id="help">
+  <h2>🎙️ Voice Blackboard</h2>
+  <p>Use the microphone and speak commands naturally.</p>
+  <div class="cmds">
+   <div class="cmd">“Pen” / “Write”</div><div class="cmd">“Select” / “Preview”</div>
+   <div class="cmd">“Eraser”</div><div class="cmd">“Blue” / “Red” / “Yellow”</div>
+   <div class="cmd">“Sticky note”</div><div class="cmd">“Table”</div>
+   <div class="cmd">“Undo” / “Redo”</div><div class="cmd">“New page”</div>
+   <div class="cmd">“See pages”</div><div class="cmd">“Download PNG”</div>
+   <div class="cmd">“Preview board”</div><div class="cmd">“Clear board”</div>
+   <div class="cmd">“Blackboard” / “Whiteboard”</div><div class="cmd">“Grid”</div>
   </div>
+ </div>
+
+ <div id="toolbar">
+  <div class="panel">
+   <button class="tool active" id="pen"><span class="icon">✎</span>Pen</button>
+   <button class="tool" id="select"><span class="icon">➤</span>Select</button>
+   <button class="tool" id="eraser"><span class="icon">⌫</span>Eraser</button>
+   <button class="tool" id="insert"><span class="icon">＋</span>Insert</button>
+   <button class="tool" id="theme"><span class="icon">▣</span>Board</button>
+   <div class="sep"></div>
+   <button class="tool" id="undo"><span class="icon">↶</span>Undo</button>
+   <button class="tool" id="redo"><span class="icon">↷</span>Redo</button>
+   <button class="tool" id="clear"><span class="icon">✕</span>Clear</button>
+   <button class="tool" id="previewBtn"><span class="icon">👁</span>Preview</button>
+   <button class="tool" id="pngBtn"><span class="icon">⬇</span>PNG</button>
+   <button class="tool" id="pagesBtn"><span class="icon">▤</span>Pages</button>
+  </div>
+  <div class="panel pageCtl">
+   <button class="pageBtn" id="prev">‹</button><span id="pageNo">1 / 1</span>
+   <button class="pageBtn" id="next">›</button><button class="pageBtn" id="add">＋</button>
+  </div>
+ </div>
+
+ <div id="preview"><canvas id="previewCanvas"></canvas><button class="topBtn" id="previewClose">×</button></div>
 </div>
 
 <script>
-const canvas=document.getElementById('draw'),ctx=canvas.getContext('2d');
-const board=document.getElementById('board');
-const toast=document.getElementById('toast');
-const dot=document.getElementById('dot'),voiceText=document.getElementById('voiceText');
+const canvas=document.getElementById('canvas'),ctx=canvas.getContext('2d');
+const pcanvas=document.getElementById('previewCanvas'),pctx=pcanvas.getContext('2d');
+const board=document.getElementById('board'),objects=document.getElementById('objects');
 
-const state={
+const S={
  tool:'pen',color:'#fff',size:5,bg:'#0d2b1d',grid:false,
- page:0,pages:[[]],redo:[[]],drawing:false,path:null
+ page:0,pages:[{strokes:[],objects:[]}],redo:[{strokes:[],objects:[]}],
+ drawing:false,path:null
 };
 
-function resize(){
- const old=document.createElement('canvas');
- old.width=canvas.width; old.height=canvas.height;
- if(canvas.width) old.getContext('2d').drawImage(canvas,0,0);
- canvas.width=innerWidth; canvas.height=innerHeight;
- redraw();
-}
-addEventListener('resize',resize);
+function size(){canvas.width=innerWidth;canvas.height=innerHeight;redraw();renderObjects()}
+addEventListener('resize',size);
 
-function toastMsg(s){
- toast.textContent=s;toast.classList.add('show');
- clearTimeout(window.__t);window.__t=setTimeout(()=>toast.classList.remove('show'),1100);
-}
+function toast(t){let x=document.getElementById('toast');x.textContent=t;x.classList.add('show');clearTimeout(window.tt);window.tt=setTimeout(()=>x.classList.remove('show'),1300)}
 function redraw(){
  ctx.clearRect(0,0,canvas.width,canvas.height);
- for(const p of state.pages[state.page]){
-   ctx.beginPath();ctx.lineCap='round';ctx.lineJoin='round';
-   ctx.strokeStyle=p.color;ctx.lineWidth=p.size;
-   p.points.forEach((pt,i)=>i?ctx.lineTo(pt.x,pt.y):ctx.moveTo(pt.x,pt.y));
-   ctx.stroke();
+ for(const s of S.pages[S.page].strokes){
+  ctx.beginPath();ctx.lineCap='round';ctx.lineJoin='round';ctx.strokeStyle=s.color;ctx.lineWidth=s.size;
+  s.points.forEach((p,i)=>i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y));ctx.stroke();
  }
 }
-function pos(e){
- const r=canvas.getBoundingClientRect();
- return {x:e.clientX-r.left,y:e.clientY-r.top};
-}
-function start(e){
- if(state.tool!=='pen' && state.tool!=='eraser') return;
- e.preventDefault();state.drawing=true;
- const p=pos(e);
- state.path={color:state.tool==='eraser'?state.bg:state.color,
- size:state.tool==='eraser'?Math.max(18,state.size*5):state.size,
- points:[p]};
- ctx.beginPath();ctx.moveTo(p.x,p.y);
-}
-function move(e){
- if(!state.drawing)return;
- e.preventDefault();const p=pos(e);
- state.path.points.push(p);ctx.lineTo(p.x,p.y);ctx.strokeStyle=state.path.color;
- ctx.lineWidth=state.path.size;ctx.lineCap='round';ctx.lineJoin='round';ctx.stroke();
-}
-function end(){
- if(!state.drawing)return;state.drawing=false;
- if(state.path?.points.length>1){
-   state.pages[state.page].push(state.path);state.redo[state.page]=[];
- }
- state.path=null;
-}
-canvas.addEventListener('pointerdown',start);
-canvas.addEventListener('pointermove',move);
-addEventListener('pointerup',end);
-
-function setTool(t){
- state.tool=t;
- document.querySelectorAll('.tool').forEach(x=>x.classList.remove('active'));
- document.getElementById(t)?.classList.add('active');
- canvas.style.cursor=t==='pen'?'crosshair':t==='eraser'?'cell':'default';
- closePops();
- toastMsg(t==='select'?'Pointer mode':t[0].toUpperCase()+t.slice(1));
-}
-function undo(){
- const a=state.pages[state.page];
- if(a.length){state.redo[state.page].push(a.pop());redraw();toastMsg('Undo');}
-}
-function redo(){
- const a=state.redo[state.page];
- if(a.length){state.pages[state.page].push(a.pop());redraw();toastMsg('Redo');}
-}
-function clearBoard(){
- state.pages[state.page]=[];state.redo[state.page]=[];redraw();toastMsg('Board cleared');
-}
-function updatePage(){document.getElementById('pageText').textContent=`${state.page+1} / ${state.pages.length}`;redraw()}
-function addPage(){state.pages.push([]);state.redo.push([]);state.page=state.pages.length-1;updatePage();toastMsg('New page')}
 function setBg(c){
- state.bg=c;board.style.background=c;
- if(state.grid) applyGrid();
- redraw();toastMsg('Board changed');
+ S.bg=c;board.style.background=c;applyGrid();redraw();toast('Board background changed')
 }
 function applyGrid(){
- board.style.backgroundImage=state.grid?
-  'linear-gradient(rgba(255,255,255,.12) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.12) 1px,transparent 1px)':'none';
- board.style.backgroundSize=state.grid?'40px 40px':'auto';
+ board.style.backgroundImage=S.grid?'linear-gradient(#ffffff18 1px,transparent 1px),linear-gradient(90deg,#ffffff18 1px,transparent 1px)':'none';
+ board.style.backgroundSize='40px 40px'
 }
-function toggleGrid(){state.grid=!state.grid;applyGrid();document.getElementById('gridBtn').textContent='Grid: '+(state.grid?'ON':'OFF');toastMsg(state.grid?'Grid on':'Grid off')}
+function pos(e){const r=canvas.getBoundingClientRect();return{x:e.clientX-r.left,y:e.clientY-r.top}}
+function down(e){
+ if(S.tool!=='pen'&&S.tool!=='eraser')return;
+ e.preventDefault();S.drawing=true;const p=pos(e);
+ S.path={color:S.tool==='eraser'?S.bg:S.color,size:S.tool==='eraser'?Math.max(22,S.size*5):S.size,points:[p]};
+ ctx.beginPath();ctx.moveTo(p.x,p.y)
+}
+function move(e){
+ if(!S.drawing)return;e.preventDefault();const p=pos(e);S.path.points.push(p);
+ ctx.lineTo(p.x,p.y);ctx.strokeStyle=S.path.color;ctx.lineWidth=S.path.size;ctx.lineCap='round';ctx.lineJoin='round';ctx.stroke()
+}
+function up(){
+ if(!S.drawing)return;S.drawing=false;
+ if(S.path&&S.path.points.length>1){S.pages[S.page].strokes.push(S.path);S.pages[S.page].objects.push();S.redo[S.page]={strokes:[],objects:[]}}
+ S.path=null;updateThumbs()
+}
+canvas.addEventListener('pointerdown',down);canvas.addEventListener('pointermove',move);addEventListener('pointerup',up);
 
+function setTool(t){
+ S.tool=t;document.querySelectorAll('#toolbar .tool').forEach(b=>b.classList.remove('active'));
+ document.getElementById(t)?.classList.add('active');
+ document.getElementById('selectHint').style.display=t==='select'?'block':'none';
+ canvas.style.cursor=t==='pen'?'crosshair':t==='eraser'?'cell':t==='select'?'default':'default';
+ closePops();toast(t[0].toUpperCase()+t.slice(1)+' selected')
+}
+function undo(){
+ const p=S.pages[S.page];
+ if(p.strokes.length){S.redo[S.page].strokes.push(p.strokes.pop());redraw();updateThumbs();toast('Undo')}
+}
+function redo(){
+ const r=S.redo[S.page].strokes;
+ if(r.length){S.pages[S.page].strokes.push(r.pop());redraw();updateThumbs();toast('Redo')}
+}
+function clearBoard(){S.pages[S.page].strokes=[];S.pages[S.page].objects=[];redraw();renderObjects();updateThumbs();toast('Board cleared')}
+function updatePage(){document.getElementById('pageNo').textContent=`${S.page+1} / ${S.pages.length}`;redraw();renderObjects();updateThumbs()}
+function addPage(){S.pages.push({strokes:[],objects:[]});S.redo.push({strokes:[],objects:[]});S.page=S.pages.length-1;updatePage();toast('New page created')}
 function closePops(){document.querySelectorAll('.pop').forEach(x=>x.classList.remove('show'))}
-function toggle(id){const x=document.getElementById(id);const open=x.classList.contains('show');closePops();if(!open)x.classList.add('show')}
+function togglePop(id){const e=document.getElementById(id),open=e.classList.contains('show');closePops();if(!open)e.classList.add('show')}
 
-document.getElementById('pen').onclick=()=>state.tool==='pen'?toggle('penPop'):setTool('pen');
-document.getElementById('eraser').onclick=()=>setTool('eraser');
-document.getElementById('select').onclick=()=>setTool('select');
-document.getElementById('clear').onclick=clearBoard;
-document.getElementById('undo').onclick=undo;
-document.getElementById('redo').onclick=redo;
-document.getElementById('theme').onclick=()=>toggle('themePop');
-document.getElementById('prev').onclick=()=>{if(state.page){state.page--;updatePage()}};
-document.getElementById('next').onclick=()=>{if(state.page<state.pages.length-1){state.page++;updatePage()}};
-document.getElementById('add').onclick=addPage;
-document.getElementById('gridBtn').onclick=toggleGrid;
-document.getElementById('size').oninput=e=>state.size=+e.target.value;
-document.querySelectorAll('[data-color]').forEach(b=>b.onclick=()=>{
- state.color=b.dataset.color;setTool('pen');
- document.querySelectorAll('[data-color]').forEach(x=>x.classList.remove('sel'));b.classList.add('sel');
- toastMsg('Pen '+b.dataset.color);
-});
-document.querySelectorAll('[data-bg]').forEach(b=>b.onclick=()=>setBg(b.dataset.bg));
-document.getElementById('helpBtn').onclick=()=>document.getElementById('help').classList.toggle('show');
-document.getElementById('fullBtn').onclick=()=>document.fullscreenElement?document.exitFullscreen():document.documentElement.requestFullscreen();
-
-function normalize(s){
- return s.toLowerCase().replace(/[.,!?]/g,' ').replace(/\s+/g,' ').trim();
+function addSticky(x=180,y=170,text='Write here…'){
+ const o={type:'sticky',x,y,w:190,h:150,text};
+ S.pages[S.page].objects.push(o);renderObjects();updateThumbs();toast('Sticky note added')
 }
-function command(s){
- s=normalize(s);
- if(!s)return;
- if(/\b(new page|add page|next page)\b/.test(s)){addPage();return}
- if(/\b(previous page|prev page)\b/.test(s)){if(state.page){state.page--;updatePage();toastMsg('Previous page')}return}
- if(/\b(full screen|fullscreen)\b/.test(s)){document.documentElement.requestFullscreen?.();toastMsg('Fullscreen');return}
- if(/\b(clear|clean) (the )?(board|screen)\b|\bclear board\b/.test(s)){clearBoard();return}
- if(/\b(undo)\b/.test(s)){undo();return}
- if(/\b(redo)\b/.test(s)){redo();return}
- if(/\b(eraser|erase)\b/.test(s)){setTool('eraser');return}
- if(/\b(pointer|select|selection|preview|move)\b/.test(s)){setTool('select');return}
- if(/\b(pen|write|draw)\b/.test(s)){setTool('pen');return}
- if(/\b(blackboard|black board|black screen)\b/.test(s)){setBg('#000');return}
- if(/\b(whiteboard|white board|white screen)\b/.test(s)){setBg('#fff');return}
- if(/\b(greenboard|green board|green screen)\b/.test(s)){setBg('#0d2b1d');return}
- if(/\b(grid|grid lines)\b/.test(s)){toggleGrid();return}
- const colors={blue:'#3b82f6',red:'#ef4444',yellow:'#facc15',green:'#22c55e',white:'#fff',purple:'#a855f7',black:'#111827'};
- for(const [name,c] of Object.entries(colors)){
-   if(new RegExp('\\b'+name+'\\b').test(s)){state.color=c;setTool('pen');toastMsg('Pen '+name);return}
+function addTable(x=240,y=220,rows=3,cols=4){
+ const o={type:'table',x,y,rows,cols,w:Math.max(340,cols*85),h:rows*38};
+ S.pages[S.page].objects.push(o);renderObjects();updateThumbs();toast('Table added')
+}
+function renderObjects(){
+ objects.innerHTML='';
+ S.pages[S.page].objects.filter(Boolean).forEach((o,i)=>{
+  const el=document.createElement('div');el.className='obj';el.style.left=o.x+'px';el.style.top=o.y+'px';el.dataset.i=i;
+  if(o.type==='sticky'){
+   el.classList.add('sticky');el.style.width=o.w+'px';el.style.minHeight=o.h+'px';
+   const h=document.createElement('div');h.className='handle';h.textContent='📝 Sticky Note';el.appendChild(h);
+   const ta=document.createElement('textarea');ta.value=o.text;ta.oninput=()=>{o.text=ta.value;updateThumbs()};el.appendChild(ta)
+  }else{
+   const t=document.createElement('table');t.className='tableObj';
+   for(let r=0;r<o.rows;r++){const tr=t.insertRow();for(let c=0;c<o.cols;c++){const td=tr.insertCell();td.contentEditable='true';td.textContent=o.cells?.[r]?.[c]||'';td.oninput=()=>{o.cells=o.cells||Array.from({length:o.rows},()=>Array(o.cols).fill(''));o.cells[r][c]=td.textContent;updateThumbs()}}}
+   el.appendChild(t)
+  }
+  el.onpointerdown=e=>{
+   if(S.tool!=='select')return;
+   e.stopPropagation();let sx=e.clientX,sy=e.clientY,ox=o.x,oy=o.y;
+   const drag=ev=>{o.x=ox+ev.clientX-sx;o.y=oy+ev.clientY-sy;el.style.left=o.x+'px';el.style.top=o.y+'px';updateThumbs()};
+   const end=()=>{removeEventListener('pointermove',drag);removeEventListener('pointerup',end)};
+   addEventListener('pointermove',drag);addEventListener('pointerup',end)
+  };
+  objects.appendChild(el)
+ })
+}
+
+function boardSnapshot(targetCtx,w,h){
+ targetCtx.fillStyle=S.bg;targetCtx.fillRect(0,0,w,h);
+ if(S.grid){
+  targetCtx.strokeStyle='#ffffff20';targetCtx.lineWidth=1;
+  for(let x=0;x<w;x+=40){targetCtx.beginPath();targetCtx.moveTo(x,0);targetCtx.lineTo(x,h);targetCtx.stroke()}
+  for(let y=0;y<h;y+=40){targetCtx.beginPath();targetCtx.moveTo(0,y);targetCtx.lineTo(w,y);targetCtx.stroke()}
  }
- const n=s.match(/\b(?:size|thickness|width)\s+(\d{1,2})\b/);
- if(n){state.size=Math.min(35,Math.max(1,+n[1]));document.getElementById('size').value=state.size;setTool('pen');toastMsg('Thickness '+state.size);return}
+ const sx=w/innerWidth,sy=h/innerHeight;
+ for(const s of S.pages[S.page].strokes){
+  targetCtx.beginPath();targetCtx.lineCap='round';targetCtx.lineJoin='round';targetCtx.strokeStyle=s.color;targetCtx.lineWidth=s.size*((sx+sy)/2);
+  s.points.forEach((p,i)=>i?targetCtx.lineTo(p.x*sx,p.y*sy):targetCtx.moveTo(p.x*sx,p.y*sy));targetCtx.stroke()
+ }
+ for(const o of S.pages[S.page].objects.filter(Boolean)){
+  const x=o.x*sx,y=o.y*sy;
+  if(o.type==='sticky'){
+   targetCtx.fillStyle='#fef08a';targetCtx.fillRect(x,y,o.w*sx,o.h*sy);
+   targetCtx.fillStyle='#1f2937';targetCtx.font=`bold ${13*sx}px Segoe UI`;targetCtx.fillText('📝 Sticky Note',x+10*sx,y+22*sy);
+   targetCtx.font=`${13*sx}px Segoe UI`;
+   const lines=(o.text||'').split('\\n');lines.slice(0,7).forEach((line,i)=>targetCtx.fillText(line.slice(0,28),x+10*sx,y+(45+i*16)*sy))
+  }else{
+   const cw=o.w/o.cols,ch=38;
+   targetCtx.fillStyle='#fff';targetCtx.fillRect(x,y,o.w*sx,o.rows*ch*sy);
+   targetCtx.strokeStyle='#111827';targetCtx.lineWidth=1;
+   for(let r=0;r<=o.rows;r++){targetCtx.beginPath();targetCtx.moveTo(x,y+r*ch*sy);targetCtx.lineTo(x+o.w*sx,y+r*ch*sy);targetCtx.stroke()}
+   for(let c=0;c<=o.cols;c++){targetCtx.beginPath();targetCtx.moveTo(x+c*cw*sx,y);targetCtx.lineTo(x+c*cw*sx,y+o.rows*ch*sy);targetCtx.stroke()}
+   for(let r=0;r<o.rows;r++)for(let c=0;c<o.cols;c++){targetCtx.fillStyle='#111827';targetCtx.font=`12px Segoe UI`;targetCtx.fillText(o.cells?.[r]?.[c]||'',x+c*cw*sx+5,y+r*ch*sy+24)}
+  }
+ }
 }
+function exportPNG(){
+ const out=document.createElement('canvas');out.width=innerWidth*2;out.height=innerHeight*2;
+ boardSnapshot(out.getContext('2d'),out.width,out.height);
+ const a=document.createElement('a');a.download=`smartboard-page-${S.page+1}.png`;a.href=out.toDataURL('image/png');a.click();toast('PNG downloaded')
+}
+function showPreview(){
+ const p=document.getElementById('preview');p.classList.add('show');pcanvas.width=innerWidth;pcanvas.height=innerHeight;boardSnapshot(pctx,innerWidth,innerHeight)
+}
+function updateThumbs(){
+ const list=document.getElementById('pagesList');list.innerHTML='';
+ S.pages.forEach((pg,i)=>{
+  const d=document.createElement('div');d.className='thumb'+(i===S.page?' active':'');
+  const c=document.createElement('canvas');c.width=260;c.height=140;d.appendChild(c);
+  const sp=S.page;S.page=i;boardSnapshot(c.getContext('2d'),260,140);S.page=sp;
+  const n=document.createElement('span');n.textContent=i+1;d.appendChild(n);
+  d.onclick=()=>{S.page=i;updatePage()};list.appendChild(d)
+ })
+ document.getElementById('pageNo').textContent=`${S.page+1} / ${S.pages.length}`
+}
+
+document.getElementById('pen').onclick=()=>S.tool==='pen'?togglePop('penPop'):setTool('pen');
+document.getElementById('select').onclick=()=>setTool('select');
+document.getElementById('eraser').onclick=()=>setTool('eraser');
+document.getElementById('insert').onclick=()=>togglePop('insertPop');
+document.getElementById('theme').onclick=()=>togglePop('themePop');
+document.getElementById('undo').onclick=undo;document.getElementById('redo').onclick=redo;document.getElementById('clear').onclick=clearBoard;
+document.getElementById('previewBtn').onclick=showPreview;document.getElementById('pngBtn').onclick=exportPNG;
+document.getElementById('pagesBtn').onclick=()=>document.getElementById('pagesPanel').classList.toggle('show');
+document.getElementById('closePages').onclick=()=>document.getElementById('pagesPanel').classList.remove('show');
+document.getElementById('prev').onclick=()=>{if(S.page){S.page--;updatePage()}};
+document.getElementById('next').onclick=()=>{if(S.page<S.pages.length-1){S.page++;updatePage()}};
+document.getElementById('add').onclick=addPage;
+document.getElementById('stickyBtn').onclick=()=>{addSticky();closePops()};
+document.getElementById('tableBtn').onclick=()=>{addTable();closePops()};
+document.getElementById('penSize').oninput=e=>S.size=+e.target.value;
+document.querySelectorAll('[data-color]').forEach(b=>b.onclick=()=>{S.color=b.dataset.color;setTool('pen');toast('Pen color changed')});
+document.querySelectorAll('[data-bg]').forEach(b=>b.onclick=()=>setBg(b.dataset.bg));
+document.getElementById('gridBtn').onclick=()=>{S.grid=!S.grid;applyGrid();document.getElementById('gridBtn').textContent='Grid: '+(S.grid?'ON':'OFF');toast(S.grid?'Grid ON':'Grid OFF')};
+document.getElementById('helpBtn').onclick=()=>document.getElementById('help').classList.toggle('show');
+document.getElementById('fullBtn').onclick=()=>document.fullscreenElement?document.exitFullscreen():document.documentElement.requestFullscreen?.();
+document.getElementById('previewClose').onclick=()=>document.getElementById('preview').classList.remove('show');
 
 let recognition=null,voiceOn=false;
 const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
 if(SR){
- recognition=new SR();
- recognition.continuous=true;
- recognition.interimResults=false;
- recognition.lang='en-IN';
- recognition.onstart=()=>{voiceOn=true;dot.classList.add('live');voiceText.textContent='Voice On';toastMsg('Voice control ready')};
- recognition.onresult=e=>{
-   for(let i=e.resultIndex;i<e.results.length;i++){
-     if(e.results[i].isFinal){
-       const text=e.results[i][0].transcript;
-       toastMsg('Heard: '+text);command(text);
-     }
-   }
- };
- recognition.onerror=e=>{
-   if(e.error==='not-allowed'||e.error==='service-not-allowed'){voiceOn=false;dot.classList.remove('live');voiceText.textContent='Mic blocked'}
- };
- recognition.onend=()=>{
-   if(voiceOn){try{recognition.start()}catch{}}
- };
-}else{
- voiceText.textContent='Voice unsupported';
-}
+ recognition=new SR();recognition.continuous=true;recognition.interimResults=false;recognition.lang='en-IN';
+ recognition.onstart=()=>{voiceOn=true;dot.classList.add('live');voiceText.textContent='Voice On';toast('Voice control ready')};
+ recognition.onresult=e=>{for(let i=e.resultIndex;i<e.results.length;i++)if(e.results[i].isFinal){const t=e.results[i][0].transcript;toast('Heard: '+t);voiceCommand(t)}};
+ recognition.onerror=e=>{if(e.error==='not-allowed'){voiceOn=false;dot.classList.remove('live');voiceText.textContent='Mic blocked'}};
+ recognition.onend=()=>{if(voiceOn)try{recognition.start()}catch{}}
+}else voiceText.textContent='Use Chrome/Edge';
 
-function toggleVoice(){
- if(!recognition){toastMsg('Use Chrome or Edge for voice');return}
- if(voiceOn){voiceOn=false;try{recognition.stop()}catch{};dot.classList.remove('live');voiceText.textContent='Mic Off';toastMsg('Voice off')}
- else{try{recognition.start()}catch{}}
+function voiceCommand(v){
+ const s=v.toLowerCase().replace(/[.,!?]/g,' ').replace(/\s+/g,' ').trim();
+ if(/(download|save).*(png|image)/.test(s)||/png/.test(s)){exportPNG();return}
+ if(/(see|show|open).*(pages|page list)/.test(s)){document.getElementById('pagesPanel').classList.add('show');return}
+ if(/(preview|presentation|present)/.test(s)){showPreview();return}
+ if(/(new|add).*(page)/.test(s)){addPage();return}
+ if(/previous page|prev page/.test(s)){if(S.page){S.page--;updatePage()};return}
+ if(/next page/.test(s)){if(S.page<S.pages.length-1){S.page++;updatePage()};return}
+ if(/sticky|sticky note|note/.test(s)){addSticky();return}
+ if(/\btable\b/.test(s)){addTable();return}
+ if(/clear|clean/.test(s)&&/(board|screen)/.test(s)){clearBoard();return}
+ if(/\bundo\b/.test(s)){undo();return}
+ if(/\bredo\b/.test(s)){redo();return}
+ if(/eraser|erase/.test(s)){setTool('eraser');return}
+ if(/select|selection|pointer|move/.test(s)){setTool('select');return}
+ if(/pen|write|draw/.test(s)){setTool('pen');return}
+ if(/blackboard|black board|black screen/.test(s)){setBg('#000');return}
+ if(/whiteboard|white board|white screen/.test(s)){setBg('#fff');return}
+ if(/greenboard|green board/.test(s)){setBg('#0d2b1d');return}
+ if(/\bgrid\b/.test(s)){S.grid=!S.grid;applyGrid();document.getElementById('gridBtn').textContent='Grid: '+(S.grid?'ON':'OFF');return}
+ const colors={blue:'#3b82f6',red:'#ef4444',yellow:'#facc15',green:'#22c55e',white:'#fff',purple:'#a855f7',black:'#111827'};
+ for(const [n,c] of Object.entries(colors))if(new RegExp('\\b'+n+'\\b').test(s)){S.color=c;setTool('pen');toast(n+' pen');return}
+ const m=s.match(/(?:thickness|size|width)\s+(\d{1,2})/);
+ if(m){S.size=Math.min(35,Math.max(1,+m[1]));document.getElementById('penSize').value=S.size;setTool('pen');toast('Thickness '+S.size)}
 }
-document.getElementById('micBtn').onclick=toggleVoice;
+document.getElementById('micBtn').onclick=()=>{
+ if(!recognition){toast('Voice needs Chrome or Edge');return}
+ if(voiceOn){voiceOn=false;try{recognition.stop()}catch{};dot.classList.remove('live');voiceText.textContent='Mic Off';toast('Voice off')}
+ else try{recognition.start()}catch{}
+};
 
-resize();
+size();updateThumbs();
 </script>
 </body>
 </html>
