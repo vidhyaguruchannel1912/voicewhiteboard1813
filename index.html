@@ -28,7 +28,7 @@ button{font:inherit;cursor:pointer}
 .tbl td:focus{box-shadow:inset 0 0 0 2px #3b82f6}
 .table-object{background:#fff;box-shadow:0 10px 25px #0005}
 .table-object .drag-handle{background:#e9edf4;color:#111}
-#sel{position:absolute;display:none;border:2px dashed #59f;background:#59f1;z-index:30;pointer-events:none;overflow:visible}.shape-highlight{filter:drop-shadow(0 0 5px rgba(80,160,255,.95)) drop-shadow(0 0 11px rgba(80,160,255,.65))}
+#sel{position:absolute;display:none;border:2px dashed #59f;background:#59f1;z-index:30;pointer-events:none;overflow:visible}
 #deleteSelected{position:absolute;top:-43px;left:50%;transform:translateX(-50%);padding:7px 13px;border:1px solid #ef4444;background:#991b1bdd;color:#fff;border-radius:9px;font-size:10px;font-weight:900;letter-spacing:.7px;box-shadow:0 7px 20px #0008;pointer-events:auto;z-index:40}#deleteSelected:hover{background:#dc2626}
 .h,.rot-h{position:absolute;width:15px;height:15px;background:#fff;border:2px solid #26f;border-radius:2px;pointer-events:auto}
 .tl{left:-8px;top:-8px;cursor:nwse-resize}.tr{right:-8px;top:-8px;cursor:nesw-resize}.bl{left:-8px;bottom:-8px;cursor:nesw-resize}.br{right:-8px;bottom:-8px;cursor:nwse-resize}
@@ -101,7 +101,6 @@ button{font:inherit;cursor:pointer}
       <button class="shape-btn" data-shape="line"><span class="shape-icon">╱</span><span class="shape-name">LINE</span></button>
       <button class="shape-btn" data-shape="arrow"><span class="shape-icon">➜</span><span class="shape-name">ARROW</span></button>
       <button class="shape-btn" data-shape="doublearrow"><span class="shape-icon">↔</span><span class="shape-name">DOUBLE</span></button>
-      <button class="shape-btn" data-shape="arc"><span class="shape-icon">⌒</span><span class="shape-name">ARC</span></button>
       <button class="shape-btn" data-shape="rect"><span class="shape-icon">▭</span><span class="shape-name">RECTANGLE</span></button>
       <button class="shape-btn" data-shape="square"><span class="shape-icon">□</span><span class="shape-name">SQUARE</span></button>
       <button class="shape-btn" data-shape="circle"><span class="shape-icon">○</span><span class="shape-name">CIRCLE</span></button>
@@ -171,7 +170,7 @@ const prevBtn=el('prev'),nextBtn=el('next'),addPageBtn=el('add'),eraserCursor=el
 let S={tool:'pen',col:'#fff',size:5,eraserSize:25,bg:'#123522',grid:false,p:0,pages:[{st:[],sh:[],ob:[]}],hist:[[]],redo:[[]],drawing:false,path:null,tp:new Map(),gesture:null,move:null,resize:null,rotate:null,selected:null};
 const COL={blue:'#3b82f6',red:'#ef4444',yellow:'#facc15',green:'#22c55e',white:'#fff',purple:'#a855f7',black:'#111827',orange:'#f97316'};
 const A={blue:['blue','blu','blew'],red:['red','read','rid'],yellow:['yellow','yelo','yelow'],green:['green','gren','grin'],white:['white','wite','wit'],purple:['purple','purpl','perple'],black:['black','blak'],orange:['orange','oranj'],pen:['pen','pin','penn','write','draw'],eraser:['eraser','erase','erazor','racer','rub'],clear:['clear','cleer','clean'],select:['select','selection','move','mouve'],undo:['undo','under','un do'],redo:['redo','redue','re do','redoing','red o']};
-const SHAPE_NAMES={dotted:'dotted line',dashed:'dashed line',line:'line',arrow:'arrow',doublearrow:'double arrow',arc:'arc',rect:'rectangle',square:'square',circle:'circle',oval:'oval',tri:'triangle',righttri:'right triangle',parallelogram:'parallelogram',diamond:'rhombus',trapezium:'trapezium',pentagon:'pentagon',hexagon:'hexagon'};
+const SHAPE_NAMES={dotted:'dotted line',dashed:'dashed line',line:'line',arrow:'arrow',doublearrow:'double arrow',rect:'rectangle',square:'square',circle:'circle',oval:'oval',tri:'triangle',righttri:'right triangle',parallelogram:'parallelogram',diamond:'rhombus',trapezium:'trapezium',pentagon:'pentagon',hexagon:'hexagon'};
 function pg(){return S.pages[S.p]}
 function msg(t){const h=el('heard');h.textContent=String(t).toUpperCase();h.classList.add('show');clearTimeout(window._msgTimer);window._msgTimer=setTimeout(()=>h.classList.remove('show'),750)}
 function clone(x){return structuredClone(x)}
@@ -199,10 +198,6 @@ function shape(c,s){
     const x1=s.x,y=s.y+s.h/2,x2=s.x+s.w,head=Math.max(15,(s.sz||1)*5);
     c.moveTo(x1,y);c.lineTo(x2,y);c.moveTo(x1,y);c.lineTo(x1+head,y-head*.55);c.moveTo(x1,y);c.lineTo(x1+head,y+head*.55);c.moveTo(x2,y);c.lineTo(x2-head,y-head*.55);c.moveTo(x2,y);c.lineTo(x2-head,y+head*.55);
   }
-  else if(s.t==='arc'){
-    const r=Math.max(1,Math.min(rx,ry));
-    c.arc(cx,cy,r,-Math.PI*0.15,Math.PI*1.15,false);
-  }
   else if(s.t==='rect') c.rect(s.x,s.y,s.w,s.h);
   else if(s.t==='square'){const side=Math.max(1,Math.min(Math.abs(s.w),Math.abs(s.h)));c.rect(cx-side/2,cy-side/2,side,side)}
   else if(s.t==='circle'){const r=Math.max(1,Math.min(rx,ry));c.arc(cx,cy,r,0,Math.PI*2)}
@@ -216,35 +211,7 @@ function shape(c,s){
   else if(s.t==='hexagon') polygonPath(c,cx,cy,rx,ry,6,-Math.PI/2);
   c.stroke(); c.restore();
 }
-function draw(){
-  X.clearRect(0,0,C.width,C.height);
-  const p=pg();
-  p.st.forEach(s=>stroke(X,s));
-  drawShapesOrdered(X,p.sh);
-  p.ob.forEach(o=>drawObject(X,o));
-  drawSelectedHighlight();
-}
-function drawShapesOrdered(ctx,shapes){
-  // Arcs are annotations for circle work, so always render them above other shapes.
-  const ordered=[...(shapes||[])].sort((a,b)=>Number(a.t==='arc')-Number(b.t==='arc'));
-  ordered.forEach(s=>shape(ctx,s));
-}
-function drawSelectedHighlight(){
-  if(S.tool!=='select'||!S.selected)return;
-  const k=S.selected.kind,i=S.selected.index,p=pg(),item=k==='sh'?p.sh[i]:k==='ob'?p.ob[i]:p.st[i];
-  if(!item)return;
-  X.save();X.globalAlpha=.98;X.strokeStyle='#7dd3fc';X.lineWidth=Math.max(3,(item.sz||3)+4);X.shadowColor='#38bdf8';X.shadowBlur=11;X.lineCap='round';X.lineJoin='round';
-  if(k==='sh'){
-    shape(X,{...item,sz:Math.max(2,(item.sz||2)+2),dash:null});
-  }else if(k==='st'){
-    X.beginPath();
-    (item.pts||[]).forEach((pt,idx)=>idx?X.lineTo(pt.x,pt.y):X.moveTo(pt.x,pt.y));
-    X.stroke();
-  }else{
-    const b=itemBounds('ob',i);if(b){X.strokeRect(b.x,b.y,b.w,b.h)}
-  }
-  X.restore();
-}
+function draw(){X.clearRect(0,0,C.width,C.height);const p=pg();/* Shapes first, ink/strokes second: anything written over a shape stays visibly ON TOP. */p.sh.forEach(s=>shape(X,s));p.st.forEach(s=>stroke(X,s));}
 function pos(e){const r=C.getBoundingClientRect();return{x:e.clientX-r.left,y:e.clientY-r.top}}
 function rotatePoint(x,y,cx,cy,a){const ca=Math.cos(a),sa=Math.sin(a),dx=x-cx,dy=y-cy;return{x:cx+dx*ca-dy*sa,y:cy+dx*sa+dy*ca}}
 function rotatedRectBounds(x,y,w,h,rot){const cx=x+w/2,cy=y+h/2,a=(rot||0)*Math.PI/180,cs=Math.cos(a),sn=Math.sin(a);const pts=[[-w/2,-h/2],[w/2,-h/2],[w/2,h/2],[-w/2,h/2]].map(([dx,dy])=>({x:cx+dx*cs-dy*sn,y:cy+dx*sn+dy*cs}));const xs=pts.map(p=>p.x),ys=pts.map(p=>p.y);const minX=Math.min(...xs),maxX=Math.max(...xs),minY=Math.min(...ys),maxY=Math.max(...ys);return{x:minX,y:minY,w:maxX-minX,h:maxY-minY}}
@@ -256,7 +223,6 @@ function rectContains(p,x,y,w,h){return p.x>=Math.min(x,x+w)&&p.x<=Math.max(x,x+
 function shapeHit(s,p){
   const q=localPoint(p,s),x=s.x,y=s.y,w=s.w,h=s.h,cx=x+w/2,cy=y+h/2,rx=Math.abs(w/2),ry=Math.abs(h/2),pad=Math.max(10,(s.sz||1)+8);
   if(['line','dotted','dashed','arrow','doublearrow'].includes(s.t)) return distSeg(q.x,q.y,x,y+h/2,x+w,y+h/2)<=pad || rectContains(q,x-pad,y+h/2-pad,w+2*pad,2*pad);
-  if(s.t==='arc'){const r=Math.max(1,Math.min(rx,ry));const rr=Math.hypot(q.x-cx,q.y-cy);let a=Math.atan2(q.y-cy,q.x-cx);const start=-Math.PI*0.15,end=Math.PI*1.15;while(a<start)a+=Math.PI*2;while(a>end)a-=Math.PI*2;return rr<=r+pad&&rr>=Math.max(0,r-pad)&&a>=start&&a<=end;}
   if(s.t==='circle'){const r=Math.max(1,Math.min(rx,ry));const d=Math.hypot(q.x-cx,q.y-cy);return Math.abs(d-r)<=pad || d<r+pad}
   if(s.t==='oval'){const v=Math.sqrt(((q.x-cx)/(rx+pad||1))**2+((q.y-cy)/(ry+pad||1))**2);return v<=1}
   return rectContains(q,x-pad,y-pad,w+2*pad,h+2*pad);
@@ -393,7 +359,7 @@ function addPage(){S.pages.push({st:[],sh:[],ob:[]});S.hist.push([]);S.redo.push
 function drawGrid(ctx,w,h){if(!S.grid)return;ctx.save();ctx.strokeStyle='rgba(255,255,255,.08)';ctx.lineWidth=1;for(let x=0;x<=w;x+=40){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,h);ctx.stroke()}for(let y=0;y<=h;y+=40){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(w,y);ctx.stroke()}ctx.restore()}
 function wrapLines(ctx,text,maxWidth,font){ctx.font=font;const out=[];String(text||'').split(/\r?\n/).forEach(par=>{const words=par.split(' ');let line='';for(const word of words){const test=line?line+' '+word:word;if(ctx.measureText(test).width<=maxWidth||!line)line=test;else{out.push(line);line=word}}out.push(line)});return out}
 function drawObject(ctx,o){ctx.save();ctx.translate(o.x+o.w/2,o.y+o.h/2);ctx.rotate((o.rot||0)*Math.PI/180);ctx.translate(-(o.x+o.w/2),-(o.y+o.h/2));if(o.t==='sticky'){ctx.fillStyle='#f8df67';ctx.fillRect(o.x,o.y,o.w,o.h);ctx.strokeStyle='#d0ac22';ctx.lineWidth=2;ctx.strokeRect(o.x,o.y,o.w,o.h);ctx.fillStyle='#111';ctx.font='900 13px Arial';ctx.fillText('📝 STICKY NOTE',o.x+10,o.y+20);ctx.font='14px Arial';const lines=wrapLines(ctx,o.text||'',o.w-20,'14px Arial');lines.slice(0,Math.max(1,Math.floor((o.h-35)/17))).forEach((line,i)=>ctx.fillText(line,o.x+10,o.y+42+i*17))}else{ctx.fillStyle='#fff';ctx.fillRect(o.x,o.y,o.w,o.h);ctx.strokeStyle='#555';ctx.lineWidth=1;for(let r=0;r<=o.rows;r++){const yy=o.y+r*o.h/o.rows;ctx.beginPath();ctx.moveTo(o.x,yy);ctx.lineTo(o.x+o.w,yy);ctx.stroke()}for(let c=0;c<=o.cols;c++){const xx=o.x+c*o.w/o.cols;ctx.beginPath();ctx.moveTo(xx,o.y);ctx.lineTo(xx,o.y+o.h);ctx.stroke()}ctx.fillStyle='#111';ctx.font='14px Arial';for(let r=0;r<o.rows;r++)for(let c=0;c<o.cols;c++){const txt=o.cells?.[r]?.[c]||'';const cw=o.w/o.cols;const lines=wrapLines(ctx,txt,cw-10,'14px Arial');lines.slice(0,Math.max(1,Math.floor(o.h/o.rows/16))).forEach((line,k)=>ctx.fillText(line,o.x+c*cw+5,o.y+r*o.h/o.rows+15+k*16))}}ctx.restore()}
-function drawPageContent(ctx,p,w,h){p.st.forEach(s=>stroke(ctx,s));drawShapesOrdered(ctx,p.sh);p.ob.forEach(o=>drawObject(ctx,o));}
+function drawPageContent(ctx,p,w,h){/* Keep the same visual stacking in board, preview, thumbnails and exports. */p.sh.forEach(s=>shape(ctx,s));p.st.forEach(s=>stroke(ctx,s));p.ob.forEach(o=>drawObject(ctx,o));}
 function pageThumb(q,p){q.fillStyle=S.bg;q.fillRect(0,0,260,140);drawGrid(q,260,140);const sx=260/Math.max(1,C.width),sy=140/Math.max(1,C.height);q.save();q.scale(sx,sy);drawPageContent(q,p,C.width,C.height,true);q.restore()}
 function refreshPages(){const list=el('plist');if(!list)return;list.innerHTML='';const old=S.p;S.pages.forEach((p,i)=>{const d=document.createElement('div');d.className='thumb'+(i===old?' active':'');const cc=document.createElement('canvas');cc.width=260;cc.height=140;d.appendChild(cc);pageThumb(cc.getContext('2d'),p);const n=document.createElement('span');n.textContent=i+1;d.appendChild(n);d.addEventListener('click',()=>{S.p=i;setSelection(null);draw();renderObjects();updateSelection();refreshPages()});list.appendChild(d)});el('ptext').textContent=`${S.p+1} / ${S.pages.length}`;el('pageCountTop').textContent=String(S.pages.length);updateExportLabel()}
 function getExportScale(){const area=Math.max(1,C.width*C.height);return Math.min(4,Math.max(2,Math.sqrt(40000000/area)))}
