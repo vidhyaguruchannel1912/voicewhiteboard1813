@@ -7,6 +7,7 @@
 <style>
 *{box-sizing:border-box}
 html,body{margin:0;height:100%;overflow:hidden;background:#080a0d;font-family:Arial,sans-serif}
+html,body,#app,#frame,#board,#c,#objs,#sel,.obj,.drag-handle,.tool,.tb,.badge,.pg,.shape-btn,.sw{user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;-webkit-user-drag:none}
 button{font:inherit;cursor:pointer}
 #app{position:fixed;inset:0}
 #frame{position:absolute;inset:8px;border:14px solid #171b20;border-radius:10px;box-shadow:inset 0 0 0 3px #343b43,0 0 0 2px #050607,0 15px 55px #0009;overflow:hidden}
@@ -27,7 +28,8 @@ button{font:inherit;cursor:pointer}
 .tbl td:focus{box-shadow:inset 0 0 0 2px #3b82f6}
 .table-object{background:#fff;box-shadow:0 10px 25px #0005}
 .table-object .drag-handle{background:#e9edf4;color:#111}
-#sel{position:absolute;display:none;border:2px dashed #59f;background:#59f1;z-index:30;pointer-events:none}
+#sel{position:absolute;display:none;border:2px dashed #59f;background:#59f1;z-index:30;pointer-events:none;overflow:visible}
+#deleteSelected{position:absolute;top:-43px;left:50%;transform:translateX(-50%);padding:7px 13px;border:1px solid #ef4444;background:#991b1bdd;color:#fff;border-radius:9px;font-size:10px;font-weight:900;letter-spacing:.7px;box-shadow:0 7px 20px #0008;pointer-events:auto;z-index:40}#deleteSelected:hover{background:#dc2626}
 .h,.rot-h{position:absolute;width:15px;height:15px;background:#fff;border:2px solid #26f;border-radius:2px;pointer-events:auto}
 .tl{left:-8px;top:-8px;cursor:nwse-resize}.tr{right:-8px;top:-8px;cursor:nesw-resize}.bl{left:-8px;bottom:-8px;cursor:nesw-resize}.br{right:-8px;bottom:-8px;cursor:nwse-resize}
 .rot-line{position:absolute;left:50%;top:-32px;width:2px;height:24px;background:#59f;transform:translateX(-50%);pointer-events:none}
@@ -65,7 +67,7 @@ button{font:inherit;cursor:pointer}
       <canvas id="c"></canvas>
       <div id="eraserCursor" aria-hidden="true"></div>
       <div id="objs"></div>
-      <div id="sel"><i class="h tl"></i><i class="h tr"></i><i class="h bl"></i><i class="h br"></i><span class="rot-line"></span><i class="rot-h">↻</i></div>
+      <div id="sel"><button id="deleteSelected" type="button">DELETE</button><i class="h tl"></i><i class="h tr"></i><i class="h bl"></i><i class="h br"></i><span class="rot-line"></span><i class="rot-h">↻</i></div>
     </div>
   </div>
   <div class="credit">DESIGN AND DEVELOPED BY GARVIT</div>
@@ -164,7 +166,7 @@ button{font:inherit;cursor:pointer}
 const C=document.getElementById('c'),X=C.getContext('2d'),board=document.getElementById('board'),objs=document.getElementById('objs'),sel=document.getElementById('sel');
 const el=id=>document.getElementById(id);
 const penBtn=el('pen'),eraserBtn=el('eraser'),selectBtn=el('select'),clearBtn=el('clear'),shapesBtn=el('shapesBtn'),insertBtn=el('insert'),boardBtn=el('boardbtn'),colourBtn=el('colour'),undoBtn=el('undo'),redoBtn=el('redo'),previewBtn=el('preview'),pngBtn=el('png'),pagesBtn=el('pagesbtn');
-const prevBtn=el('prev'),nextBtn=el('next'),addPageBtn=el('add'),eraserCursor=el('eraserCursor');
+const prevBtn=el('prev'),nextBtn=el('next'),addPageBtn=el('add'),eraserCursor=el('eraserCursor'),deleteSelectedBtn=el('deleteSelected');
 let S={tool:'pen',col:'#fff',size:5,eraserSize:25,bg:'#123522',grid:false,p:0,pages:[{st:[],sh:[],ob:[]}],hist:[[]],redo:[[]],drawing:false,path:null,tp:new Map(),gesture:null,move:null,resize:null,rotate:null,selected:null};
 const COL={blue:'#3b82f6',red:'#ef4444',yellow:'#facc15',green:'#22c55e',white:'#fff',purple:'#a855f7',black:'#111827',orange:'#f97316'};
 const A={blue:['blue','blu','blew'],red:['red','read','rid'],yellow:['yellow','yelo','yelow'],green:['green','gren','grin'],white:['white','wite','wit'],purple:['purple','purpl','perple'],black:['black','blak'],orange:['orange','oranj'],pen:['pen','pin','penn','write','draw'],eraser:['eraser','erase','erazor','racer','rub'],clear:['clear','cleer','clean'],select:['select','selection','move','mouve'],undo:['undo','under','un do'],redo:['redo','redue','re do','redoing','red o']};
@@ -228,7 +230,13 @@ function shapeHit(s,p){
 function objectHit(o,p){const q=localPoint(p,o);return rectContains(q,o.x,o.y,o.w,o.h)}
 function hitTest(p){for(let i=pg().ob.length-1;i>=0;i--)if(objectHit(pg().ob[i],p))return{kind:'ob',index:i};for(let i=pg().sh.length-1;i>=0;i--)if(shapeHit(pg().sh[i],p))return{kind:'sh',index:i};for(let i=pg().st.length-1;i>=0;i--)if(strokeHit(pg().st[i],p))return{kind:'st',index:i};return null}
 function setSelection(item){S.selected=item?{kind:item.kind,index:item.index}:null;updateSelection()}
+
+// Prevent the browser's long-press text/highlight selection on the board; keep text editing usable in sticky notes/tables.
+document.addEventListener('selectstart',e=>{if(!e.target.closest('textarea,[contenteditable=\"true\"]'))e.preventDefault()},true);
+document.addEventListener('dragstart',e=>{if(!e.target.closest('textarea,[contenteditable=\"true\"]'))e.preventDefault()},true);
+document.addEventListener('contextmenu',e=>{if(!e.target.closest('textarea,[contenteditable=\"true\"]'))e.preventDefault()},true);
 function updateSelection(){if(S.selected){const exists=S.selected.kind==='sh'?!!pg().sh[S.selected.index]:S.selected.kind==='ob'?!!pg().ob[S.selected.index]:!!pg().st[S.selected.index];if(!exists){S.selected=null}}const b=S.selected&&S.tool==='select'?itemBounds(S.selected.kind,S.selected.index):null;if(!b){sel.style.display='none';return}sel.style.display='block';sel.style.left=b.x+'px';sel.style.top=b.y+'px';sel.style.width=Math.max(20,b.w)+'px';sel.style.height=Math.max(20,b.h)+'px'}
+function deleteSelection(){if(S.tool!=='select'||!S.selected)return msg('select an object first');const before=snapshot(),k=S.selected.kind,i=S.selected.index,p=pg();if(k==='sh')p.sh.splice(i,1);else if(k==='ob')p.ob.splice(i,1);else if(k==='st')p.st.splice(i,1);else return;pushHist(before);setSelection(null);draw();renderObjects();refreshPages();msg('deleted')}
 function syncObjectElements(){[...objs.children].forEach(e=>{const i=+e.dataset.index,o=pg().ob[i];if(!o){e.remove();return}e.style.left=o.x+'px';e.style.top=o.y+'px';e.style.width=o.w+'px';e.style.height=o.h+'px';e.style.transform=`rotate(${o.rot||0}deg)`})}
 function startMove(ev,item){
   if(S.tool!=='select'||!item||S.gesture||S.resize||S.rotate)return;
@@ -409,6 +417,7 @@ addPageBtn.onclick=addPage;
 el('closeprev').onclick=()=>el('preview').classList.remove('show');
 el('full').onclick=()=>document.fullscreenElement?document.exitFullscreen():document.documentElement.requestFullscreen();
 el('helpBtn').onclick=()=>el('help').classList.toggle('show');
+if(deleteSelectedBtn){deleteSelectedBtn.addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation()});deleteSelectedBtn.onclick=e=>{e.preventDefault();e.stopPropagation();deleteSelection()}}
 el('mic').onclick=()=>{if(!rec)return msg('chrome or edge required');if(on){on=false;try{rec.stop()}catch{}el('dot').classList.remove('live');el('vt').textContent='MIC OFF';msg('voice off')}else{try{rec.start()}catch{}}};
 ['tl','tr','bl','br'].forEach(k=>el('sel').querySelector('.'+k).addEventListener('pointerdown',e=>{if(S.selected)startResize(e,k)}));
 el('sel').querySelector('.rot-h').addEventListener('pointerdown',e=>startRotate(e));
