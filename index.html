@@ -44,11 +44,13 @@ button{font:inherit;cursor:pointer}
 #heard.show{opacity:1;transform:translate(-50%,0)}
 #bar{position:absolute;bottom:17px;left:50%;transform:translateX(-50%);display:flex;gap:7px;z-index:100;max-width:98vw;overflow:visible}
 .panel{display:flex;gap:3px;align-items:center;padding:6px;background:#111827f5;border:1px solid #fff2;border-radius:17px;box-shadow:0 15px 45px #0009}
-.tool{min-width:58px;height:55px;border:0;border-radius:11px;background:transparent;color:#cbd5e1;font-size:10px;font-weight:800;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px}
-.tool.active{background:#3b82f6;color:#fff}.ico{font-size:20px}.pg{width:35px;height:40px;border:0;background:transparent;color:#fff;font-size:22px}.sep{width:1px;height:38px;background:#334155;margin:0 4px}#ptext{min-width:50px;text-align:center;font-size:11px;font-weight:800}
+.tool{min-width:58px;height:58px;border:0;border-radius:12px;background:transparent;color:#cbd5e1;font-size:10px;font-weight:800;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;transition:.16s ease;position:relative}
+.tool:hover{background:#ffffff0d;transform:translateY(-1px)}
+.tool.active{background:linear-gradient(180deg,#1769ff,#0d4dcc);color:#fff;box-shadow:0 6px 18px #0005,inset 0 1px 0 #ffffff33}.ico{font-size:23px;line-height:1;filter:drop-shadow(0 2px 3px #0007)}
+.tool small{font-size:9px;line-height:1;letter-spacing:.25px}.tool.active small{color:#fff}.ico.pen{color:#38bdf8}.ico.eraser{color:#f472b6}.ico.select{color:#a7f3d0}.ico.clear{color:#fb7185}.ico.shapes{color:#fbbf24}.ico.insert{color:#c084fc}.ico.board{color:#60a5fa}.ico.colour{color:#f472b6}.ico.undo,.ico.redo{color:#cbd5e1}.ico.preview{color:#67e8f9}.ico.png{color:#34d399}.ico.pages{color:#facc15}.pg{width:35px;height:40px;border:0;background:transparent;color:#fff;font-size:22px}.sep{width:1px;height:38px;background:#334155;margin:0 4px}#ptext{min-width:50px;text-align:center;font-size:11px;font-weight:800}
 .pop{position:absolute;z-index:110;display:none;background:#111827f7;color:#fff;border:1px solid #fff2;border-radius:15px;padding:13px;box-shadow:0 20px 50px #0009;min-width:190px}
 .pop.show{display:block}.sw{width:30px;height:30px;border-radius:50%;border:2px solid #fff8}.row{display:flex;gap:7px;flex-wrap:wrap}.range{width:100%}
-#penpop,#eraserpop{width:245px}.eraser-preview-row{display:flex;align-items:center;gap:9px;margin:8px 0 6px}.eraser-preview{width:42px;height:42px;border-radius:50%;border:2px solid #fff;background:rgba(255,255,255,.08);display:grid;place-items:center;flex:0 0 42px}.eraser-preview i{display:block;width:25px;height:25px;border-radius:50%;border:2px solid #fff;background:rgba(255,255,255,.08);box-shadow:0 0 0 1px #0006}.pop-title{display:flex;justify-content:space-between;align-items:center;font-size:12px;font-weight:900;letter-spacing:.5px}.mini{font-size:10px;color:#94a3b8}
+#penpop{width:330px}#eraserpop{width:245px}.eraser-preview-row{display:flex;align-items:center;gap:9px;margin:8px 0 6px}.eraser-preview{width:42px;height:42px;border-radius:50%;border:2px solid #fff;background:rgba(255,255,255,.08);display:grid;place-items:center;flex:0 0 42px}.eraser-preview i{display:block;width:25px;height:25px;border-radius:50%;border:2px solid #fff;background:rgba(255,255,255,.08);box-shadow:0 0 0 1px #0006}.pop-title{display:flex;justify-content:space-between;align-items:center;font-size:12px;font-weight:900;letter-spacing:.5px}.pen-section{margin-top:10px}.pen-section-title{font-size:9px;color:#94a3b8;font-weight:900;letter-spacing:1px;margin-bottom:6px}.pen-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}.pen-type{height:66px;border:1px solid #ffffff12;border-radius:11px;background:#0f1b17;color:#dbeafe;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;font-size:9px;font-weight:900;transition:.15s}.pen-type:hover{background:#172820;border-color:#ffffff28;transform:translateY(-1px)}.pen-type.active{border-color:#00e58a;background:#073c2b;box-shadow:0 0 0 1px #00e58a33,inset 0 0 18px #00e58a10}.pen-type .pen-ico{font-size:23px;line-height:1}.pen-type .pen-label{font-size:8px}.colour-row{display:flex;gap:8px;flex-wrap:wrap}.colour-row .sw{width:32px;height:32px}.rainbow{background:conic-gradient(#ef4444,#facc15,#22c55e,#3b82f6,#a855f7,#ef4444)!important}.mini{font-size:10px;color:#94a3b8}
 #shapespop{width:360px;max-height:330px;overflow:auto}.shape-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-top:9px}.shape-btn{min-width:0;height:54px;border:1px solid #ffffff14;border-radius:10px;background:#0f172a;color:#e2e8f0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px}.shape-btn:hover{background:#1e293b}.shape-icon{font-size:20px}.shape-name{font-size:8px;font-weight:900}
 #insertpop{width:215px}#boardpop{width:190px}
 #pages.show{display:block}
@@ -79,10 +81,26 @@ button{font:inherit;cursor:pointer}
   <div id="heard">READY</div>
 
   <div class="pop" id="penpop">
-    <div class="pop-title"><b>PEN / COLOUR</b><span class="mini" id="penPx">5 px</span></div>
-    <input class="range" id="size" type="range" min="1" max="35" value="5">
-    <div class="row" style="margin-top:9px">
-      <button class="sw" data-col="#fff" style="background:#fff"></button><button class="sw" data-col="#facc15" style="background:#facc15"></button><button class="sw" data-col="#ef4444" style="background:#ef4444"></button><button class="sw" data-col="#3b82f6" style="background:#3b82f6"></button><button class="sw" data-col="#22c55e" style="background:#22c55e"></button><button class="sw" data-col="#a855f7" style="background:#a855f7"></button><button class="sw" data-col="#f97316" style="background:#f97316"></button><button class="sw" data-col="#111827" style="background:#111827"></button>
+    <div class="pop-title"><b>PEN &amp; COLOUR</b><span class="mini" id="penPx">5 px</span></div>
+    <div class="pen-section">
+      <div class="pen-section-title">PEN STYLE</div>
+      <div class="pen-grid">
+        <button class="pen-type active" data-pen="normal"><span class="pen-ico">🖊️</span><span class="pen-label">NORMAL PEN</span></button>
+        <button class="pen-type" data-pen="glow"><span class="pen-ico">✨</span><span class="pen-label">GLOW PEN</span></button>
+        <button class="pen-type" data-pen="chinese"><span class="pen-ico">🪶</span><span class="pen-label">CHINESE NIB</span></button>
+        <button class="pen-type" data-pen="flat"><span class="pen-ico">🖌️</span><span class="pen-label">FLAT BRUSH</span></button>
+        <button class="pen-type" data-pen="highlighter"><span class="pen-ico">🖍️</span><span class="pen-label">HIGHLIGHTER</span></button>
+      </div>
+    </div>
+    <div class="pen-section">
+      <div class="pen-section-title">COLOUR</div>
+      <div class="colour-row">
+        <button class="sw" data-col="#fff" style="background:#fff" aria-label="White"></button><button class="sw" data-col="#facc15" style="background:#facc15" aria-label="Yellow"></button><button class="sw" data-col="#ef4444" style="background:#ef4444" aria-label="Red"></button><button class="sw" data-col="#3b82f6" style="background:#3b82f6" aria-label="Blue"></button><button class="sw" data-col="#22c55e" style="background:#22c55e" aria-label="Green"></button><button class="sw" data-col="#a855f7" style="background:#a855f7" aria-label="Purple"></button><button class="sw" data-col="#f97316" style="background:#f97316" aria-label="Orange"></button><button class="sw" data-col="#111827" style="background:#111827" aria-label="Black"></button>
+      </div>
+    </div>
+    <div class="pen-section">
+      <div class="pop-title"><span class="pen-section-title" style="margin:0">THICKNESS</span><span class="mini">drag to change</span></div>
+      <input class="range" id="size" type="range" min="1" max="35" value="5">
     </div>
   </div>
 
@@ -167,7 +185,7 @@ const C=document.getElementById('c'),X=C.getContext('2d'),board=document.getElem
 const el=id=>document.getElementById(id);
 const penBtn=el('pen'),eraserBtn=el('eraser'),selectBtn=el('select'),clearBtn=el('clear'),shapesBtn=el('shapesBtn'),insertBtn=el('insert'),boardBtn=el('boardbtn'),colourBtn=el('colour'),undoBtn=el('undo'),redoBtn=el('redo'),previewBtn=el('preview'),pngBtn=el('png'),pagesBtn=el('pagesbtn');
 const prevBtn=el('prev'),nextBtn=el('next'),addPageBtn=el('add'),eraserCursor=el('eraserCursor'),deleteSelectedBtn=el('deleteSelected');
-let S={tool:'pen',col:'#fff',size:5,eraserSize:25,bg:'#123522',grid:false,p:0,pages:[{st:[],sh:[],ob:[]}],hist:[[]],redo:[[]],drawing:false,path:null,tp:new Map(),gesture:null,move:null,resize:null,rotate:null,selected:null};
+let S={tool:'pen',penType:'normal',col:'#fff',size:5,eraserSize:25,bg:'#123522',grid:false,p:0,pages:[{st:[],sh:[],ob:[]}],hist:[[]],redo:[[]],drawing:false,path:null,tp:new Map(),gesture:null,move:null,resize:null,rotate:null,selected:null};
 const COL={blue:'#3b82f6',red:'#ef4444',yellow:'#facc15',green:'#22c55e',white:'#fff',purple:'#a855f7',black:'#111827',orange:'#f97316'};
 const A={blue:['blue','blu','blew'],red:['red','read','rid'],yellow:['yellow','yelo','yelow'],green:['green','gren','grin'],white:['white','wite','wit'],purple:['purple','purpl','perple'],black:['black','blak'],orange:['orange','oranj'],pen:['pen','pin','penn','write','draw'],eraser:['eraser','erase','erazor','racer','rub'],clear:['clear','cleer','clean'],select:['select','selection','move','mouve'],undo:['undo','under','un do'],redo:['redo','redue','re do','redoing','red o']};
 const SHAPE_NAMES={dotted:'dotted line',dashed:'dashed line',line:'line',arrow:'arrow',doublearrow:'double arrow',rect:'rectangle',square:'square',circle:'circle',oval:'oval',tri:'triangle',righttri:'right triangle',parallelogram:'parallelogram',diamond:'rhombus',trapezium:'trapezium',pentagon:'pentagon',hexagon:'hexagon'};
@@ -178,7 +196,23 @@ function snapshot(){return clone(pg())}
 function pushHist(before){if(!before)return;S.hist[S.p].push(clone(before));S.redo[S.p]=[]}
 function resizeCanvas(){C.width=Math.max(1,board.clientWidth);C.height=Math.max(1,board.clientHeight);draw();renderObjects();updateSelection();refreshPages()}
 function applyBoard(){board.style.background=S.bg;board.style.backgroundImage=S.grid?'linear-gradient(#fff2 1px,transparent 1px),linear-gradient(90deg,#fff2 1px,transparent 1px)':'none';board.style.backgroundSize='40px 40px';updateExportLabel()}
-function stroke(c,s,exportMode=false){c.save();if(s.erase&&!exportMode){c.globalCompositeOperation='destination-out';c.strokeStyle='#fff'}else{c.globalCompositeOperation='source-over';c.strokeStyle=s.erase?S.bg:(s.col||'#fff')}c.lineWidth=Math.max(1,s.sz||1);c.lineCap='round';c.lineJoin='round';if(s.dash)c.setLineDash(s.dash);c.beginPath();(s.pts||[]).forEach((pt,i)=>i?c.lineTo(pt.x,pt.y):c.moveTo(pt.x,pt.y));c.stroke();c.restore()}
+function stroke(c,s,exportMode=false){
+  c.save();
+  if(s.erase&&!exportMode){
+    c.globalCompositeOperation='destination-out';c.strokeStyle='#fff';c.lineWidth=Math.max(1,s.sz||1);c.lineCap='round';c.lineJoin='round';
+  }else{
+    c.globalCompositeOperation='source-over';
+    c.strokeStyle=s.erase?S.bg:(s.col||'#fff');
+    const pen=s.penType||'normal',base=Math.max(1,s.sz||1);
+    c.lineWidth=pen==='flat'?base*1.45:pen==='highlighter'?base*3.1:pen==='chinese'?Math.max(1,base*.82):base;
+    c.lineCap=pen==='flat'?'butt':'round';
+    c.lineJoin=pen==='chinese'?'miter':'round';
+    if(pen==='glow'&&!exportMode){c.shadowBlur=Math.max(8,base*2.8);c.shadowColor=s.col||'#fff'}
+    if(pen==='highlighter')c.globalAlpha=.32;
+  }
+  if(s.dash)c.setLineDash(s.dash);
+  c.beginPath();(s.pts||[]).forEach((pt,i)=>i?c.lineTo(pt.x,pt.y):c.moveTo(pt.x,pt.y));c.stroke();c.restore();
+}
 function polygonPath(c,cx,cy,rx,ry,n,rot){c.moveTo(cx+rx*Math.cos(rot),cy+ry*Math.sin(rot));for(let i=1;i<=n;i++)c.lineTo(cx+rx*Math.cos(rot+i*2*Math.PI/n),cy+ry*Math.sin(rot+i*2*Math.PI/n));c.closePath()}
 function starPath(c,cx,cy,outer,inner,points,rot){c.moveTo(cx+outer*Math.cos(rot),cy+outer*Math.sin(rot));for(let i=1;i<points*2;i++){const r=i%2?inner:outer;const a=rot+i*Math.PI/points;c.lineTo(cx+r*Math.cos(a),cy+r*Math.sin(a))}c.closePath()}
 function shape(c,s){
@@ -307,7 +341,7 @@ function pd(e){
   if(S.tool==='select'){const p=pos(e),hit=hitTest(p);setSelection(hit);if(hit)startMove(e,hit);return}
   if(S.tool==='eraser'){beginEraser(e);return}
   if(S.tool!=='pen')return;
-  e.preventDefault();S.drawing=true;const p=pos(e);S.path={col:S.col,sz:S.size,erase:false,pts:[p]};X.beginPath();X.moveTo(p.x,p.y)
+  e.preventDefault();S.drawing=true;const p=pos(e);S.path={col:S.col,sz:S.size,penType:S.penType||'normal',erase:false,pts:[p]};X.beginPath();X.moveTo(p.x,p.y)
 }
 function pm(e){
   if(S.tool==='eraser'){moveEraser(e);return}
@@ -434,7 +468,7 @@ function voice(raw,isFinal){const s=norm(raw),now=performance.now();
 function closePops(){document.querySelectorAll('.pop').forEach(x=>x.classList.remove('show'))}
 function positionPop(button,pop){const br=button.getBoundingClientRect(),rr=board.getBoundingClientRect();pop.style.left=(br.left+br.width/2-rr.left)+'px';pop.style.bottom=(rr.bottom-br.top+10)+'px';pop.style.transform='translateX(-50%)'}
 function togglePop(id,button){const e=el(id),open=e.classList.contains('show');closePops();if(!open){positionPop(button||el('bar'),e);e.classList.add('show')}}
-penBtn.onclick=()=>{setTool('pen');togglePop('penpop',colourBtn)};
+penBtn.onclick=()=>{setTool('pen');togglePop('penpop',penBtn)};
 eraserBtn.onclick=()=>{setTool('eraser');togglePop('eraserpop',eraserBtn)};
 selectBtn.onclick=()=>setTool('select');
 clearBtn.onclick=clearBoard;
@@ -445,7 +479,8 @@ colourBtn.onclick=()=>togglePop('penpop',colourBtn);
 undoBtn.onclick=undo;redoBtn.onclick=redo;previewBtn.onclick=preview;pngBtn.onclick=exportSmart;
 el('stickyBtn').onclick=()=>{addSticky();closePops()};el('tableBtn').onclick=()=>{addTable();closePops()};
 document.querySelectorAll('[data-shape]').forEach(b=>b.onclick=()=>{addShape(b.dataset.shape);closePops()});
-el('size').oninput=e=>{S.size=+e.target.value;el('penPx').textContent=S.size+' px'};
+el('size').oninput=e=>{S.size=+e.target.value;el('penPx').textContent=S.size+' px'}
+document.querySelectorAll('[data-pen]').forEach(b=>b.onclick=()=>{S.penType=b.dataset.pen;document.querySelectorAll('.pen-type').forEach(x=>x.classList.toggle('active',x===b));setTool('pen');msg(b.querySelector('.pen-label')?.textContent||'pen');closePops()});
 el('eraserSize').oninput=e=>{S.eraserSize=+e.target.value;el('eraserPx').textContent=S.eraserSize+' px';updateEraserPreview()};function updateEraserPreview(){const d=el('eraserDot');if(!d)return;const v=Math.max(8,Math.min(54,S.eraserSize*.72));d.style.width=v+'px';d.style.height=v+'px'}
 document.querySelectorAll('[data-col]').forEach(b=>b.onclick=()=>{S.col=b.dataset.col;setTool('pen');closePops()});
 document.querySelectorAll('[data-bg]').forEach(b=>b.onclick=()=>{S.bg=b.dataset.bg;applyBoard();closePops();msg('board colour changed')});
