@@ -323,29 +323,69 @@ function pageTransform(base,dx,dy,scale,origin){const o=clone(base),p=origin||{x
 function twoMove(){const v=[...S.tp.values()];if(v.length<2||!S.gesture)return;const a=v[0],z=v[1],cx=(a.x+z.x)/2,cy=(a.y+z.y)/2,d=Math.max(1,Math.hypot(a.x-z.x,a.y-z.y)),sc=Math.max(.25,Math.min(4,d/S.gesture.d));const b=boundsPage(S.gesture.base);S.pages[S.p]=pageTransform(S.gesture.base,cx-S.gesture.cx,cy-S.gesture.cy,sc,b?{x:b.x,y:b.y}:undefined);draw();syncObjectElements();updateSelection()}
 function onTouchDown(e){
   if(e.pointerType!=='touch')return;
+  e.preventDefault();
   S.tp.set(e.pointerId,pos(e));
   if(S.tp.size===2){
-    e.preventDefault();
     if(S.move||S.resize||S.rotate){S.move=null;S.resize=null;S.rotate=null}
-    if(S.eraseSession)endEraser();
+    if(S.eraseSession){S.drawing=false;S.eraseSession=null}
     S.drawing=false;S.path=null;hideEraserCursor();beginTwo();return;
   }
-  if(S.tool==='eraser'&&S.tp.size===1){e.preventDefault();beginEraser(e)}
+  if(S.tp.size===1){
+    // Route the first finger through the normal pointer logic so PEN,
+    // MOVE/SELECT and ERASER all work on touch screens.
+    pd(e);
+  }
 }
 function onTouchMove(e){
   if(e.pointerType!=='touch'||!S.tp.has(e.pointerId))return;
+  e.preventDefault();
   S.tp.set(e.pointerId,pos(e));
-  if(S.tp.size>=2&&S.gesture){e.preventDefault();e.stopPropagation();hideEraserCursor();twoMove();return}
-  if(S.tp.size===1&&S.tool==='eraser'&&S.drawing&&S.eraseSession){e.preventDefault();e.stopPropagation();moveEraser(e)}
+  if(S.tp.size>=2&&S.gesture){
+    e.stopPropagation();hideEraserCursor();twoMove();return;
+  }
+  if(S.tp.size===1){
+    pm(e);
+  }
 }
 function onTouchUp(e){
   if(e.pointerType!=='touch')return;
+  if(S.gesture){
+    S.tp.delete(e.pointerId);
+    if(S.tp.size<2){
+      const before=S.gesture.before;
+      S.gesture=null;
+      const changed=JSON.stringify(snapshot())!==JSON.stringify(before);
+      if(changed)pushHist(before);
+      draw();renderObjects();updateSelection();refreshPages();
+    }
+    return;
+  }
   S.tp.delete(e.pointerId);
-  if(S.gesture&&S.tp.size<2){const before=S.gesture.before;S.gesture=null;const changed=JSON.stringify(snapshot())!==JSON.stringify(before);if(changed)pushHist(before);refreshPages();return}
-  if(S.tp.size===0&&S.tool==='eraser'&&S.eraseSession)endEraser();
+  if(S.tp.size===0)pu();
 }
-board.addEventListener('pointerdown',onTouchDown,true);board.addEventListener('pointermove',onTouchMove,true);board.addEventListener('pointerup',onTouchUp,true);board.addEventListener('pointercancel',onTouchUp,true);
-C.onpointerdown=e=>{if(e.pointerType!=='touch')pd(e)};C.onpointermove=e=>{if(e.pointerType!=='touch'){if(S.tool==='eraser'){showEraserCursor(e,eraserRadius(e));}pm(e)}};C.onpointerup=e=>{if(e.pointerType!=='touch')pu();if(e.pointerType!=='touch'&&S.tool==='eraser')hideEraserCursor()};C.onpointerleave=e=>{if(e.pointerType!=='touch'&&!S.drawing)hideEraserCursor()};C.onpointercancel=e=>{if(e.pointerType!=='touch'){if(S.tool==='eraser')endEraser();S.drawing=false;S.path=null;hideEraserCursor()}};
+board.addEventListener('pointerdown',onTouchDown,true);
+board.addEventListener('pointermove',onTouchMove,true);
+board.addEventListener('pointerup',onTouchUp,true);
+board.addEventListener('pointercancel',onTouchUp,true);
+
+C.onpointerdown=e=>{if(e.pointerType!=='touch')pd(e)};
+C.onpointermove=e=>{
+  if(e.pointerType!=='touch'){
+    if(S.tool==='eraser')showEraserCursor(e,eraserRadius(e));
+    pm(e);
+  }
+};
+C.onpointerup=e=>{
+  if(e.pointerType!=='touch')pu();
+  if(e.pointerType!=='touch'&&S.tool==='eraser')hideEraserCursor();
+};
+C.onpointerleave=e=>{if(e.pointerType!=='touch'&&!S.drawing)hideEraserCursor()};
+C.onpointercancel=e=>{
+  if(e.pointerType!=='touch'){
+    if(S.tool==='eraser')endEraser();
+    S.drawing=false;S.path=null;hideEraserCursor();
+  }
+};
 function setTool(t){if(S.tool==='eraser'&&t!=='eraser'&&S.eraseSession)endEraser();S.tool=t;document.querySelectorAll('#bar .tool').forEach(x=>x.classList.remove('active'));el(t)?.classList.add('active');if(t!=='select')setSelection(null);if(t!=='eraser')hideEraserCursor();updateSelection();if(t==='eraser')msg('eraser selected');else msg(t+' selected')}
 function clearBoard(){const p=pg();if(!p.st.length&&!p.sh.length&&!p.ob.length)return msg('nothing to clear');const before=snapshot();p.st=[];p.sh=[];p.ob=[];setSelection(null);pushHist(before);draw();renderObjects();updateSelection();refreshPages();msg('board cleared')}
 function undo(){const h=S.hist[S.p];if(!h?.length)return msg('nothing to undo');const current=clone(pg());S.redo[S.p].push(current);S.pages[S.p]=clone(h.pop());setSelection(null);draw();renderObjects();updateSelection();refreshPages();msg('undo')}
