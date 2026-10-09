@@ -30,8 +30,8 @@ button{font:inherit;cursor:pointer}
 .table-object .drag-handle{background:#e9edf4;color:#111}
 #sel{position:absolute;display:none;border:2px dashed #59f;background:#59f1;z-index:30;pointer-events:none;overflow:visible}
 #deleteSelected{position:absolute;top:-43px;left:50%;transform:translateX(-50%);padding:7px 13px;border:1px solid #ef4444;background:#991b1bdd;color:#fff;border-radius:9px;font-size:10px;font-weight:900;letter-spacing:.7px;box-shadow:0 7px 20px #0008;pointer-events:auto;z-index:40}#deleteSelected:hover{background:#dc2626}
-.h,.rot-h{position:absolute;width:15px;height:15px;background:#fff;border:2px solid #26f;border-radius:2px;pointer-events:auto}
-.tl{left:-8px;top:-8px;cursor:nwse-resize}.tr{right:-8px;top:-8px;cursor:nesw-resize}.bl{left:-8px;bottom:-8px;cursor:nesw-resize}.br{right:-8px;bottom:-8px;cursor:nwse-resize}
+.h,.rot-h{position:absolute;width:28px;height:28px;background:#fff;border:3px solid #26f;border-radius:6px;pointer-events:auto;touch-action:none;z-index:45}
+.tl{left:-14px;top:-14px;cursor:nwse-resize}.tr{right:-14px;top:-14px;cursor:nesw-resize}.bl{left:-14px;bottom:-14px;cursor:nesw-resize}.br{right:-14px;bottom:-14px;cursor:nwse-resize}
 .rot-line{position:absolute;left:50%;top:-32px;width:2px;height:24px;background:#59f;transform:translateX(-50%);pointer-events:none}
 .rot-h{left:50%;top:-47px;transform:translateX(-50%);border-radius:50%;cursor:grab;background:#3b82f6}
 #top{position:absolute;top:20px;left:24px;right:24px;display:flex;justify-content:space-between;z-index:60;pointer-events:none}
@@ -300,8 +300,8 @@ function startMove(ev,item){
   };
   addEventListener('pointermove',mm);addEventListener('pointerup',up);addEventListener('pointercancel',up);
 }
-function startResize(ev,dir){if(S.tool!=='select'||!S.selected||S.gesture)return;ev.preventDefault();ev.stopPropagation();const before=snapshot(),base=snapshot(),b=itemBounds(S.selected.kind,S.selected.index);if(!b)return;const p0=pos(ev);S.resize={before,base,b,dir,p0};const mm=e=>{if(!S.resize)return;e.preventDefault();const p=pos(e),dx=p.x-p0.x,dy=p.y-p0.y,t={x:b.x,y:b.y,w:b.w,h:b.h};if(dir.includes('l')){t.x=b.x+dx;t.w=b.w-dx}if(dir.includes('r'))t.w=b.w+dx;if(dir.includes('t')){t.y=b.y+dy;t.h=b.h-dy}if(dir.includes('b'))t.h=b.h+dy;t.w=Math.max(18,t.w);t.h=Math.max(18,t.h);const k=S.selected.kind,i=S.selected.index,o=pg();if(k==='ob'||k==='sh'){const src=k==='ob'?o.ob[i]:o.sh[i],bs=k==='ob'?base.ob[i]:base.sh[i],cx=b.x+b.w/2,cy=b.y+b.h/2,sx=t.w/b.w,sy=t.h/b.h;src.x=bs.x+(bs.w*sx-bs.w)/2+(t.x-(b.x));src.y=bs.y+(bs.h*sy-bs.h)/2+(t.y-(b.y));src.w=Math.max(k==='ob'?35:20,Math.abs(bs.w*sx));src.h=Math.max(k==='ob'?30:20,Math.abs(bs.h*sy));if(src.t==='square'){const side=Math.max(20,Math.min(src.w,src.h));src.w=side;src.h=side}}else{const s=o.st[i],bs=base.st[i],sx=t.w/b.w,sy=t.h/b.h,ox=b.x,oy=b.y;s.pts=bs.pts.map(q=>({x:ox+(q.x-ox)*sx,y:oy+(q.y-oy)*sy}));s.sz=Math.max(1,bs.sz*Math.min(sx,sy))}draw();syncObjectElements();updateSelection()};const up=()=>{removeEventListener('pointermove',mm);removeEventListener('pointerup',up);removeEventListener('pointercancel',up);if(S.resize){const changed=JSON.stringify(snapshot())!==JSON.stringify(S.resize.before);if(changed)pushHist(S.resize.before);S.resize=null;refreshPages()}};addEventListener('pointermove',mm);addEventListener('pointerup',up);addEventListener('pointercancel',up)}
-function startRotate(ev){if(S.tool!=='select'||!S.selected||S.gesture)return;ev.preventDefault();ev.stopPropagation();const before=snapshot(),base=snapshot(),b=itemBounds(S.selected.kind,S.selected.index);if(!b)return;const center={x:b.x+b.w/2,y:b.y+b.h/2},p0=pos(ev);const startAng=Math.atan2(p0.y-center.y,p0.x-center.x);S.rotate={before,base,center,startAng};const mm=e=>{if(!S.rotate)return;e.preventDefault();const p=pos(e),ang=Math.atan2(p.y-center.y,p.x-center.x),delta=(ang-startAng)*180/Math.PI,k=S.selected.kind,i=S.selected.index,o=pg();if(k==='ob'||k==='sh'){const item=k==='ob'?o.ob[i]:o.sh[i],bs=k==='ob'?base.ob[i]:base.sh[i];item.rot=(bs.rot||0)+delta}else{const s=o.st[i],bs=base.st[i],a=delta*Math.PI/180;s.pts=bs.pts.map(q=>rotatePoint(q.x,q.y,center.x,center.y,a))}draw();syncObjectElements();updateSelection()};const up=()=>{removeEventListener('pointermove',mm);removeEventListener('pointerup',up);removeEventListener('pointercancel',up);if(S.rotate){const changed=JSON.stringify(snapshot())!==JSON.stringify(S.rotate.before);if(changed)pushHist(S.rotate.before);S.rotate=null;refreshPages()}};addEventListener('pointermove',mm);addEventListener('pointerup',up);addEventListener('pointercancel',up)}
+function startResize(ev,dir){if(S.tool!=='select'||!S.selected||S.gesture||!dir)return;ev.preventDefault();ev.stopPropagation();try{ev.currentTarget?.setPointerCapture?.(ev.pointerId)}catch{}const before=snapshot(),base=snapshot(),b=itemBounds(S.selected.kind,S.selected.index);if(!b)return;const p0=pos(ev);S.resize={before,base,b,dir,p0};const mm=e=>{if(!S.resize)return;e.preventDefault();const p=pos(e),dx=p.x-p0.x,dy=p.y-p0.y,t={x:b.x,y:b.y,w:b.w,h:b.h};if(dir.includes('l')){t.x=b.x+dx;t.w=b.w-dx}if(dir.includes('r'))t.w=b.w+dx;if(dir.includes('t')){t.y=b.y+dy;t.h=b.h-dy}if(dir.includes('b'))t.h=b.h+dy;t.w=Math.max(18,t.w);t.h=Math.max(18,t.h);const k=S.selected.kind,i=S.selected.index,o=pg();if(k==='ob'||k==='sh'){const src=k==='ob'?o.ob[i]:o.sh[i],bs=k==='ob'?base.ob[i]:base.sh[i],cx=b.x+b.w/2,cy=b.y+b.h/2,sx=t.w/b.w,sy=t.h/b.h;src.x=bs.x+(bs.w*sx-bs.w)/2+(t.x-(b.x));src.y=bs.y+(bs.h*sy-bs.h)/2+(t.y-(b.y));src.w=Math.max(k==='ob'?35:20,Math.abs(bs.w*sx));src.h=Math.max(k==='ob'?30:20,Math.abs(bs.h*sy));if(src.t==='square'){const side=Math.max(20,Math.min(src.w,src.h));src.w=side;src.h=side}}else{const s=o.st[i],bs=base.st[i],sx=t.w/b.w,sy=t.h/b.h,ox=b.x,oy=b.y;s.pts=bs.pts.map(q=>({x:ox+(q.x-ox)*sx,y:oy+(q.y-oy)*sy}));s.sz=Math.max(1,bs.sz*Math.min(sx,sy))}draw();syncObjectElements();updateSelection()};const up=()=>{removeEventListener('pointermove',mm);removeEventListener('pointerup',up);removeEventListener('pointercancel',up);if(S.resize){const changed=JSON.stringify(snapshot())!==JSON.stringify(S.resize.before);if(changed)pushHist(S.resize.before);S.resize=null;refreshPages()}};addEventListener('pointermove',mm);addEventListener('pointerup',up);addEventListener('pointercancel',up)}
+function startRotate(ev){if(S.tool!=='select'||!S.selected||S.gesture)return;ev.preventDefault();ev.stopPropagation();try{ev.currentTarget?.setPointerCapture?.(ev.pointerId)}catch{}const before=snapshot(),base=snapshot(),b=itemBounds(S.selected.kind,S.selected.index);if(!b)return;const center={x:b.x+b.w/2,y:b.y+b.h/2},p0=pos(ev);const startAng=Math.atan2(p0.y-center.y,p0.x-center.x);S.rotate={before,base,center,startAng};const mm=e=>{if(!S.rotate)return;e.preventDefault();const p=pos(e),ang=Math.atan2(p.y-center.y,p.x-center.x),delta=(ang-startAng)*180/Math.PI,k=S.selected.kind,i=S.selected.index,o=pg();if(k==='ob'||k==='sh'){const item=k==='ob'?o.ob[i]:o.sh[i],bs=k==='ob'?base.ob[i]:base.sh[i];item.rot=(bs.rot||0)+delta}else{const s=o.st[i],bs=base.st[i],a=delta*Math.PI/180;s.pts=bs.pts.map(q=>rotatePoint(q.x,q.y,center.x,center.y,a))}draw();syncObjectElements();updateSelection()};const up=()=>{removeEventListener('pointermove',mm);removeEventListener('pointerup',up);removeEventListener('pointercancel',up);if(S.rotate){const changed=JSON.stringify(snapshot())!==JSON.stringify(S.rotate.before);if(changed)pushHist(S.rotate.before);S.rotate=null;refreshPages()}};addEventListener('pointermove',mm);addEventListener('pointerup',up);addEventListener('pointercancel',up)}
 function isPalmLike(e){return e?.pointerType==='touch'&&Math.max(e.width||0,e.height||0)>=45}
 function eraserRadius(e){const contact=Math.max(e?.width||0,e?.height||0);return Math.max(S.eraserSize/2,contact>0?contact*.72:S.eraserSize/2)}
 function showEraserCursor(e,r){if(!eraserCursor||S.tool!=='eraser')return;const p=pos(e);eraserCursor.style.left=p.x+'px';eraserCursor.style.top=p.y+'px';const d=Math.max(10,r*2);eraserCursor.style.width=d+'px';eraserCursor.style.height=d+'px';eraserCursor.classList.add('show')}
@@ -360,11 +360,24 @@ function onTouchDown(e){
   e.preventDefault();
   S.tp.set(e.pointerId,pos(e));
   if(S.tp.size===2){
-    if(S.move||S.resize||S.rotate){S.move=null;S.resize=null;S.rotate=null}
-    if(S.eraseSession){S.drawing=false;S.eraseSession=null}
+    // Don't let a second finger interrupt an active resize/rotate operation.
+    if(S.resize||S.rotate||S.move)return;
     S.drawing=false;S.path=null;hideEraserCursor();beginTwo();return;
   }
   if(S.tp.size===1){
+    // Touch-friendly resize/rotate handles: the board capture handler must
+    // route these touches to their dedicated handlers instead of hitTest().
+    const target=e.target;
+    const resizeHandle=target?.closest?.('.h');
+    const rotateHandle=target?.closest?.('.rot-h');
+    if(S.tool==='select'&&S.selected&&resizeHandle){
+      startResize(e,[...resizeHandle.classList].find(k=>['tl','tr','bl','br'].includes(k)));
+      return;
+    }
+    if(S.tool==='select'&&S.selected&&rotateHandle){
+      startRotate(e);
+      return;
+    }
     // Route the first finger through the normal pointer logic so PEN,
     // MOVE/SELECT and ERASER all work on touch screens.
     pd(e);
